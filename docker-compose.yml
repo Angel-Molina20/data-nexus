@@ -1,0 +1,168 @@
+name: datanexus
+
+services:
+  backend:
+    build:
+      context: ./backend
+      target: development
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - ${BACKEND_HOST:-0.0.0.0}
+      - --port
+      - ${BACKEND_PORT:-8000}
+      - --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - datanexus-network
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+    command:
+      - pnpm
+      - dev
+      - --host
+      - 0.0.0.0
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5173').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - datanexus-network
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - datanexus-network
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - datanexus-network
+
+  mysql56:
+    image: mysql:5.6.51
+    platform: linux/amd64
+    environment:
+      MYSQL_DATABASE: ${MYSQL56_DATABASE}
+      MYSQL_USER: ${MYSQL56_USER}
+      MYSQL_PASSWORD: ${MYSQL56_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL56_ROOT_PASSWORD}
+    volumes:
+      - mysql56_data:/var/lib/mysql
+    ports:
+      - "${MYSQL56_HOST_PORT:-3307}:3306"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+    networks:
+      - datanexus-network
+
+  mysql8:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL8_DATABASE}
+      MYSQL_USER: ${MYSQL8_USER}
+      MYSQL_PASSWORD: ${MYSQL8_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL8_ROOT_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - mysql8_data:/var/lib/mysql
+    ports:
+      - "${MYSQL8_HOST_PORT:-3308}:3306"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+    networks:
+      - datanexus-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  mysql56_data:
+  mysql8_data:
+  frontend_node_modules:
+
+networks:
+  datanexus-network:
+    name: datanexus-network
+    driver: bridge
