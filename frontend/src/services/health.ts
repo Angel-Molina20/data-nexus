@@ -1,6 +1,7 @@
 export type BackendStatusValue = "checking" | "available" | "unavailable";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+let healthCheckPromise: Promise<BackendStatusValue> | undefined;
 
 function isHealthResponse(value: unknown): boolean {
   if (typeof value !== "object" || value === null) {
@@ -31,4 +32,9 @@ export async function checkBackendHealth(signal?: AbortSignal): Promise<BackendS
   } catch {
     return "unavailable";
   }
+}
+
+export function checkBackendHealthOnce(): Promise<BackendStatusValue> {
+  healthCheckPromise ??= checkBackendHealth();
+  return healthCheckPromise;
 }

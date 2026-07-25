@@ -35,5 +35,5 @@ tmp/
 temp/
 
 # Optional local bind-mounted data
-.data/
-data/
+/.data/
+/data/

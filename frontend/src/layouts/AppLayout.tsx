@@ -1,33 +1,56 @@
-import type { ReactNode } from "react";
-import { Database } from "lucide-react";
-import { Link } from "react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { useLocation } from "react-router";
 
-import { APP_NAME } from "../app/constants";
+import { getPageTitle } from "../app/navigation";
+import { TopHeader } from "../components/layout/TopHeader";
+import { MobileNavigation } from "../components/navigation/MobileNavigation";
+import { Sidebar } from "../components/navigation/Sidebar";
+import type { BackendStatusValue } from "../services/health";
 
 interface AppLayoutProps {
+  backendStatus: BackendStatusValue;
   children: ReactNode;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ backendStatus, children }: AppLayoutProps) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const pageTitle = getPageTitle(location.pathname);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="border-b border-slate-200 bg-slate-950 text-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link className="flex items-center gap-2 font-semibold" to="/">
-            <Database aria-hidden="true" className="size-5 text-blue-400" />
-            {APP_NAME}
-          </Link>
-          <nav aria-label="Navegación principal">
-            <Link
-              className="rounded-md px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white"
-              to="/connections"
-            >
-              Conexiones
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-16">{children}</main>
+    <div className="flex min-h-screen min-w-0 bg-slate-50 text-slate-950">
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggle={() => {
+          setIsSidebarCollapsed((current) => !current);
+        }}
+      />
+      <MobileNavigation
+        isOpen={isMobileMenuOpen}
+        onClose={() => {
+          setIsMobileMenuOpen(false);
+        }}
+      />
+
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <TopHeader
+          backendStatus={backendStatus}
+          pageTitle={pageTitle}
+          onOpenMobileMenu={() => {
+            setIsMobileMenuOpen(true);
+          }}
+        />
+        <main className="min-w-0 flex-1 overflow-x-hidden">
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

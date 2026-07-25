@@ -1,19 +1,22 @@
 # DataNexus
 
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
-repositorio contiene actualmente la **Fase 0**, una infraestructura de
-desarrollo funcional sin modelos ni funcionalidades de negocio.
+repositorio contiene actualmente la **Fase 1**, con infraestructura de
+desarrollo funcional y el shell visual responsive de la aplicación, todavía
+sin modelos ni funcionalidades de negocio.
 
 ## Alcance actual
 
 - API FastAPI con endpoints de health y readiness.
 - Frontend React, TypeScript, Vite y Tailwind CSS con rutas iniciales.
+- Layout SaaS responsive con sidebar, navegación principal y páginas temporales.
+- Dashboard visual con datos simulados explícitos y estado real del backend.
 - PostgreSQL como base interna y Redis como infraestructura auxiliar.
 - MySQL 5.6 y MySQL 8 como fuentes externas para futuras pruebas de integración.
 - Alembic y herramientas de pruebas, linting y comprobación de tipos.
 
-No incluye autenticación, gestión de conexiones, adaptadores, sincronización de
-esquemas, constructor de consultas ni reportes.
+No incluye autenticación, gestión real de conexiones, adaptadores,
+sincronización de esquemas, constructor de consultas ni reportes funcionales.
 
 ## Requisitos
 
@@ -113,7 +116,7 @@ arrancar.
 │   │   └── db/              # Motor, sesiones y base declarativa
 │   ├── migrations/
 │   └── tests/
-├── frontend/                # React, Vite, rutas, páginas y servicios
+├── frontend/                # React, shell visual, rutas, páginas y servicios
 ├── docs/design/             # Referencia visual para fases posteriores
 ├── docker-compose.yml
 ├── Makefile
