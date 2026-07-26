@@ -1,6 +1,6 @@
 COMPOSE := docker compose
 
-.PHONY: up down build logs ps clean backend-test backend-lint backend-typecheck frontend-lint frontend-typecheck migrate
+.PHONY: up down build logs ps clean backend-test backend-lint backend-typecheck frontend-lint frontend-typecheck frontend-test frontend-build migrate
 
 up:
 	$(COMPOSE) up -d --build
@@ -34,6 +34,12 @@ frontend-lint:
 
 frontend-typecheck:
 	$(COMPOSE) exec frontend pnpm typecheck
+
+frontend-test:
+	$(COMPOSE) exec frontend pnpm test
+
+frontend-build:
+	$(COMPOSE) exec frontend pnpm build
 
 migrate:
 	$(COMPOSE) exec backend alembic upgrade head

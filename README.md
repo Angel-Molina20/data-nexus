@@ -1,22 +1,22 @@
 # DataNexus
 
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
-repositorio contiene actualmente la **Fase 1**, con infraestructura de
-desarrollo funcional y el shell visual responsive de la aplicación, todavía
-sin modelos ni funcionalidades de negocio.
+repositorio contiene actualmente la **Fase 2**, con infraestructura, shell
+visual responsive y gestión segura de conexiones MySQL.
 
 ## Alcance actual
 
-- API FastAPI con endpoints de health y readiness.
+- API FastAPI con health, readiness y CRUD/pruebas de conexiones mediante UUID.
 - Frontend React, TypeScript, Vite y Tailwind CSS con rutas iniciales.
 - Layout SaaS responsive con sidebar, navegación principal y páginas temporales.
 - Dashboard visual con datos simulados explícitos y estado real del backend.
 - PostgreSQL como base interna y Redis como infraestructura auxiliar.
-- MySQL 5.6 y MySQL 8 como fuentes externas para futuras pruebas de integración.
+- MySQL 5.6 y MySQL 8 como fuentes externas de pruebas de integración.
+- Credenciales cifradas con Fernet, política SSRF y auditoría básica.
 - Alembic y herramientas de pruebas, linting y comprobación de tipos.
 
-No incluye autenticación, gestión real de conexiones, adaptadores,
-sincronización de esquemas, constructor de consultas ni reportes funcionales.
+No incluye autenticación, sincronización de esquemas, constructor de consultas
+ni reportes funcionales.
 
 ## Requisitos
 
@@ -37,6 +37,14 @@ host.
 
 2. Revisa los valores ficticios de desarrollo y cámbialos si el entorno lo
    requiere.
+   Genera una clave Fernet y asígnala a `CREDENTIAL_ENCRYPTION_KEY`:
+
+   ```bash
+   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
+
+   No reutilices claves de desarrollo en producción. Perder la clave impide
+   recuperar las credenciales cifradas.
 3. Construye e inicia los servicios:
 
    ```bash
@@ -77,7 +85,47 @@ make backend-lint
 make backend-typecheck
 make frontend-lint
 make frontend-typecheck
+make frontend-test
+make frontend-build
 ```
+
+## Conexiones MySQL
+
+El asistente `/connections/new` selecciona MySQL, recibe la configuración y
+exige una prueba correcta antes de guardar. La edición deja la contraseña vacía
+para conservar la actual.
+
+```text
+POST   /api/v1/connections/test
+POST   /api/v1/connections
+GET    /api/v1/connections
+GET    /api/v1/connections/{uuid}
+PATCH  /api/v1/connections/{uuid}
+DELETE /api/v1/connections/{uuid}
+POST   /api/v1/connections/{uuid}/test
+```
+
+Las respuestas y auditorías nunca incluyen contraseñas ni cadenas de conexión.
+MariaDB se detecta y advierte explícitamente, pero su compatibilidad completa no
+está garantizada.
+
+## Seguridad de red y producción
+
+La política inicial bloquea loopback, direcciones no especificadas y link-local,
+resuelve DNS y permite configurar redes privadas con
+`ALLOW_PRIVATE_DATABASE_HOSTS`, `ALLOWED_DATABASE_HOSTS` y
+`BLOCKED_DATABASE_HOSTS`. `mysql56` y `mysql8` están permitidos en desarrollo.
+Esta medida reduce SSRF, pero no elimina totalmente el riesgo de DNS rebinding.
+
+En producción el backend no debe publicar el puerto 8000: debe usar `expose` en
+una red privada y un reverse proxy debe servir frontend y `/api/*` bajo el mismo
+dominio. `APP_ENV=production` deshabilita Swagger, ReDoc y OpenAPI. Compose
+mantiene el puerto y la documentación para desarrollo.
+
+MySQL 5.6 es legacy, requiere `linux/amd64` y puede presentar limitaciones TLS
+en plataformas modernas. El rate limiting distribuido de las pruebas queda
+pendiente; no se añadió un limitador en memoria incompatible con múltiples
+instancias.
 
 La migración inicial es una base vacía: confirma que Alembic funciona sin crear
 tablas de negocio.

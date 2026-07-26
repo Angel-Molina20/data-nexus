@@ -12,6 +12,7 @@ def parse_cors_origins(value: object) -> object:
 
 
 CorsOrigins = Annotated[list[str], NoDecode, BeforeValidator(parse_cors_origins)]
+StringList = Annotated[list[str], NoDecode, BeforeValidator(parse_cors_origins)]
 
 
 class Settings(BaseSettings):
@@ -38,6 +39,20 @@ class Settings(BaseSettings):
     REDIS_HOST: str
     REDIS_PORT: int = Field(ge=1, le=65535)
     CORS_ORIGINS: CorsOrigins = ["http://localhost:5173"]
+    CREDENTIAL_ENCRYPTION_KEY: str
+    MYSQL_CONNECT_TIMEOUT: int = Field(default=10, ge=1, le=60)
+    MYSQL_READ_TIMEOUT: int = Field(default=15, ge=1, le=300)
+    MYSQL_WRITE_TIMEOUT: int = Field(default=15, ge=1, le=300)
+    ALLOW_PRIVATE_DATABASE_HOSTS: bool = True
+    ALLOWED_DATABASE_HOSTS: StringList = ["mysql56", "mysql8"]
+    BLOCKED_DATABASE_HOSTS: StringList = [
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "169.254.169.254",
+        "::1",
+    ]
+    ENABLE_API_DOCS: bool = True
 
     @property
     def database_url(self) -> str:
@@ -61,6 +76,10 @@ class Settings(BaseSettings):
                 port=self.REDIS_PORT,
             )
         )
+
+    @property
+    def api_docs_enabled(self) -> bool:
+        return self.ENABLE_API_DOCS and self.APP_ENV != "production"
 
 
 @lru_cache

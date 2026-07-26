@@ -11,9 +11,12 @@ import { createBrowserRouter } from "react-router";
 
 import { App } from "../App";
 import { ConnectionsPage } from "../pages/ConnectionsPage";
+import { ConnectionDetailPage } from "../pages/ConnectionDetailPage";
+import { EditConnectionPage } from "../pages/EditConnectionPage";
 import { HomePage } from "../pages/HomePage";
 import { ModulePage } from "../pages/ModulePage";
 import { NotFoundPage } from "../pages/NotFoundPage";
+import { NewConnectionPage } from "../pages/NewConnectionPage";
 
 export const router = createBrowserRouter([
   {
@@ -22,6 +25,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: HomePage },
       { path: "connections", Component: ConnectionsPage },
+      { path: "connections/new", Component: NewConnectionPage },
+      { path: "connections/:id", Component: ConnectionDetailPage },
+      { path: "connections/:id/edit", Component: EditConnectionPage },
       {
         path: "schema",
         element: (

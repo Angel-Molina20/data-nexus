@@ -17,6 +17,7 @@ htmlcov/
 
 # Frontend
 node_modules/
+frontend/.pnpm-store/
 dist/
 .vite/
 *.tsbuildinfo
