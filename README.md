@@ -1,8 +1,8 @@
 # DataNexus
 
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
-repositorio contiene actualmente la **Fase 2**, con infraestructura, shell
-visual responsive y gestión segura de conexiones MySQL.
+repositorio contiene actualmente la **Fase 3**, con infraestructura, shell
+visual responsive, gestión segura de conexiones MySQL y catálogo local de esquemas.
 
 ## Alcance actual
 
@@ -13,10 +13,13 @@ visual responsive y gestión segura de conexiones MySQL.
 - PostgreSQL como base interna y Redis como infraestructura auxiliar.
 - MySQL 5.6 y MySQL 8 como fuentes externas de pruebas de integración.
 - Credenciales cifradas con Fernet, política SSRF y auditoría básica.
+- Sincronización transaccional de tablas, vistas, campos, índices y claves
+  foráneas físicas hacia PostgreSQL.
+- Explorador de esquemas, historial y cambios con eliminación lógica.
 - Alembic y herramientas de pruebas, linting y comprobación de tipos.
 
-No incluye autenticación, sincronización de esquemas, constructor de consultas
-ni reportes funcionales.
+No incluye autenticación, relaciones inferidas/manuales/polimórficas,
+constructor de consultas ni reportes funcionales.
 
 ## Requisitos
 
@@ -126,6 +129,43 @@ MySQL 5.6 es legacy, requiere `linux/amd64` y puede presentar limitaciones TLS
 en plataformas modernas. El rate limiting distribuido de las pruebas queda
 pendiente; no se añadió un limitador en memoria incompatible con múltiples
 instancias.
+
+## Sincronización y exploración de esquemas
+
+Desde el detalle de una conexión se puede abrir **Explorar esquema** o llamar:
+
+```text
+POST /api/v1/connections/{uuid}/schema/synchronize
+GET  /api/v1/connections/{uuid}/schema/summary
+GET  /api/v1/connections/{uuid}/schema/entities
+GET  /api/v1/connections/{uuid}/schema/entities/{entity_uuid}
+GET  /api/v1/connections/{uuid}/schema/relationships
+GET  /api/v1/connections/{uuid}/schema/synchronizations
+GET  /api/v1/connections/{uuid}/schema/synchronizations/{sync_uuid}
+GET  /api/v1/connections/{uuid}/schema/changes
+```
+
+La inspección ejecuta cuatro consultas parametrizadas y por lotes sobre
+`information_schema`: entidades, columnas, índices y claves foráneas. Nunca
+ejecuta `SELECT` sobre tablas del usuario ni guarda registros, definiciones de
+vistas, rutinas, triggers o eventos. Para el usuario remoto se recomiendan
+únicamente `SELECT` y `SHOW VIEW`, además de visibilidad de `information_schema`.
+
+`TABLE_ROWS` es una estimación —especialmente con InnoDB— y no se considera un
+cambio estructural. Los objetos ausentes se marcan inactivos y se conservan en
+el historial; si reaparecen, se reactivan. Las relaciones actuales son
+exclusivamente claves foráneas físicas. Las inferidas, manuales y polimórficas
+corresponden a la Fase 4.
+
+La sincronización es síncrona, usa un bloqueo advisory de PostgreSQL por
+conexión y guarda el catálogo en una transacción. Se configura con
+`SCHEMA_SYNC_TIMEOUT_SECONDS`, `SCHEMA_SYNC_MAX_ENTITIES`,
+`SCHEMA_SYNC_INCLUDE_VIEWS` y `SCHEMA_SYNC_INCLUDE_SYSTEM_SCHEMAS`. Si una
+fuente supera el límite, debe aumentarse deliberadamente antes de reintentar.
+Fuentes con miles de entidades requerirán ejecución asíncrona en una fase
+posterior. MySQL 5.6 y MySQL 8 están cubiertos; los metadatos opcionales no
+disponibles generan advertencias, mientras que no poder leer tablas o columnas
+falla de forma controlada y conserva el catálogo anterior.
 
 La migración inicial es una base vacía: confirma que Alembic funciona sin crear
 tablas de negocio.

@@ -4,7 +4,6 @@ import {
   FileBarChart,
   SearchCode,
   Settings,
-  TableProperties,
   Users,
 } from "lucide-react";
 import { createBrowserRouter } from "react-router";
@@ -17,6 +16,9 @@ import { HomePage } from "../pages/HomePage";
 import { ModulePage } from "../pages/ModulePage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { NewConnectionPage } from "../pages/NewConnectionPage";
+import { SchemaExplorerPage } from "../pages/SchemaExplorerPage";
+import { SchemaIndexPage } from "../pages/SchemaIndexPage";
+import { SchemaSynchronizationsPage } from "../pages/SchemaSynchronizationsPage";
 
 export const router = createBrowserRouter([
   {
@@ -28,18 +30,10 @@ export const router = createBrowserRouter([
       { path: "connections/new", Component: NewConnectionPage },
       { path: "connections/:id", Component: ConnectionDetailPage },
       { path: "connections/:id/edit", Component: EditConnectionPage },
-      {
-        path: "schema",
-        element: (
-          <ModulePage
-            title="Explorador de esquemas"
-            description="Explora entidades, campos, relaciones e índices de las fuentes sincronizadas."
-            detail="La exploración de esquemas estará disponible después de implementar conexiones y sincronización."
-            icon={TableProperties}
-            phase="Fase 4"
-          />
-        ),
-      },
+      { path: "schema", Component: SchemaIndexPage },
+      { path: "connections/:id/schema", Component: SchemaExplorerPage },
+      { path: "connections/:id/schema/entities/:entityId", Component: SchemaExplorerPage },
+      { path: "connections/:id/schema/synchronizations", Component: SchemaSynchronizationsPage },
       {
         path: "queries",
         element: (

@@ -1,0 +1,41 @@
+TYPE_MAP = {
+    "varchar": "string",
+    "char": "string",
+    "text": "text",
+    "tinytext": "text",
+    "mediumtext": "text",
+    "longtext": "text",
+    "tinyint": "integer",
+    "smallint": "integer",
+    "mediumint": "integer",
+    "int": "integer",
+    "integer": "integer",
+    "bigint": "integer",
+    "decimal": "decimal",
+    "numeric": "decimal",
+    "float": "float",
+    "double": "float",
+    "real": "float",
+    "date": "date",
+    "time": "time",
+    "datetime": "datetime",
+    "timestamp": "datetime",
+    "blob": "binary",
+    "tinyblob": "binary",
+    "mediumblob": "binary",
+    "longblob": "binary",
+    "binary": "binary",
+    "varbinary": "binary",
+    "bit": "binary",
+    "json": "json",
+    "enum": "enum",
+    "set": "set",
+    "bool": "boolean",
+    "boolean": "boolean",
+    "uuid": "uuid",
+}
+
+
+def normalize_native_type(native_data_type: str, _: str | None = None) -> str:
+    """Normalize a native type without guessing that TINYINT(1) means boolean."""
+    return TYPE_MAP.get(native_data_type.strip().casefold(), "unknown")

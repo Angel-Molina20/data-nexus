@@ -27,6 +27,10 @@ export const navigationItems: readonly NavigationItem[] = [
 export function getPageTitle(pathname: string): string {
   if (pathname === "/connections/new") return "Nueva conexión";
   if (/^\/connections\/[^/]+\/edit$/.test(pathname)) return "Editar conexión";
+  if (/^\/connections\/[^/]+\/schema\/synchronizations$/.test(pathname)) {
+    return "Historial de sincronizaciones";
+  }
+  if (/^\/connections\/[^/]+\/schema/.test(pathname)) return "Explorador de esquemas";
   if (/^\/connections\/[^/]+$/.test(pathname)) return "Detalle de conexión";
   return navigationItems.find((item) => item.path === pathname)?.label ?? "Página no encontrada";
 }
