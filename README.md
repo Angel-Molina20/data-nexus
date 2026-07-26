@@ -1,8 +1,8 @@
 # DataNexus
 
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
-repositorio contiene actualmente la **Fase 3**, con infraestructura, shell
-visual responsive, gestión segura de conexiones MySQL y catálogo local de esquemas.
+repositorio contiene actualmente la **Fase 4**, con infraestructura, shell
+visual responsive, conexiones MySQL, catálogo local de esquemas y capa semántica.
 
 ## Alcance actual
 
@@ -16,10 +16,13 @@ visual responsive, gestión segura de conexiones MySQL y catálogo local de esqu
 - Sincronización transaccional de tablas, vistas, campos, índices y claves
   foráneas físicas hacia PostgreSQL.
 - Explorador de esquemas, historial y cambios con eliminación lógica.
+- Catálogo unificado de relaciones físicas, inferidas, manuales y polimórficas.
+- Nombres de negocio, tipos semánticos, visibilidad, campos sensibles y grafo
+  básico mediante React Flow.
 - Alembic y herramientas de pruebas, linting y comprobación de tipos.
 
-No incluye autenticación, relaciones inferidas/manuales/polimórficas,
-constructor de consultas ni reportes funcionales.
+No incluye autenticación, constructor de consultas, generación SQL ni reportes
+funcionales.
 
 ## Requisitos
 
@@ -153,9 +156,9 @@ vistas, rutinas, triggers o eventos. Para el usuario remoto se recomiendan
 
 `TABLE_ROWS` es una estimación —especialmente con InnoDB— y no se considera un
 cambio estructural. Los objetos ausentes se marcan inactivos y se conservan en
-el historial; si reaparecen, se reactivan. Las relaciones actuales son
-exclusivamente claves foráneas físicas. Las inferidas, manuales y polimórficas
-corresponden a la Fase 4.
+el historial; si reaparecen, se reactivan. Las claves foráneas físicas
+permanecen como fuente de verdad del esquema remoto y se proyectan en el
+catálogo unificado sin duplicarlas.
 
 La sincronización es síncrona, usa un bloqueo advisory de PostgreSQL por
 conexión y guarda el catálogo en una transacción. Se configura con
@@ -167,8 +170,61 @@ posterior. MySQL 5.6 y MySQL 8 están cubiertos; los metadatos opcionales no
 disponibles generan advertencias, mientras que no poder leer tablas o columnas
 falla de forma controlada y conserva el catálogo anterior.
 
-La migración inicial es una base vacía: confirma que Alembic funciona sin crear
-tablas de negocio.
+## Relaciones y capa semántica
+
+Las relaciones se administran desde
+`/connections/{uuid}/relationships`; el catálogo semántico, desde
+`/connections/{uuid}/semantic-catalog`. El catálogo diferencia:
+
+- **Física:** clave foránea MySQL, confirmada y no editable estructuralmente.
+- **Inferida:** sugerencia local como `student_id → students.id`; requiere
+  confirmación.
+- **Manual:** pares de campos elegidos por un administrador, incluso compuestos.
+- **Polimórfica:** discriminador e identificador obligatorios, por ejemplo
+  `documents.class = "Student"` y `documents.class_id = students.id`.
+
+La detección trabaja exclusivamente con PostgreSQL después de sincronizar; no
+consulta datos remotos. Puntúa la coincidencia de nombre, compatibilidad de
+tipo, PK/unique e índice de origen, y penaliza ambigüedad o metadatos inactivos.
+`0.85–1.00` es confianza alta, `0.60–0.84` media y el resto baja. Ningún nivel
+confirma automáticamente.
+
+El fingerprint SHA-256 estable incluye conexión, tipo, entidades, campos,
+origen y condiciones, pero excluye confianza, fechas y etiquetas. Por eso un
+rechazo no reaparece salvo que cambie materialmente la sugerencia. Las tablas
+puente son candidatos informativos y no crean relaciones muchos-a-muchos.
+
+La compatibilidad distingue compatible, compatible con advertencia e
+incompatible; bloquea tipos incompatibles y valida signo, longitud y precisión.
+La cardinalidad se estima con unicidad/PK y puede ajustarse manualmente. Las
+relaciones compuestas conservan el orden de sus pares.
+
+La capa semántica extiende entidades y campos físicos sin copiarlos. Conserva
+nombres visibles, singular/plural, descripción, dominio, tags, visibilidad,
+tipo semántico, formato y marca sensible. La resincronización no borra esta
+configuración; si desaparece un campo o entidad relacionado, la relación queda
+inválida y deshabilitada.
+
+Los morph maps (`Student`, `student`, `App\Models\Student`, etc.) se ingresan
+explícitamente: DataNexus nunca supone que una clase corresponde a una tabla.
+El descubrimiento de valores está deshabilitado por defecto y esta entrega no
+lee esos valores de negocio; el endpoint devuelve un error público controlado.
+
+```text
+RELATIONSHIP_DETECTION_ENABLED=true
+RELATIONSHIP_MIN_CONFIDENCE=0.50
+RELATIONSHIP_MAX_CANDIDATES=1000
+RELATIONSHIP_MAX_COMPOSITE_FIELDS=8
+POLYMORPHIC_MAX_MAPPINGS=100
+ENABLE_POLYMORPHIC_VALUE_DISCOVERY=false
+POLYMORPHIC_VALUE_DISCOVERY_LIMIT=100
+POLYMORPHIC_VALUE_DISCOVERY_TIMEOUT_SECONDS=10
+```
+
+Los nombres, tags, discriminadores y mappings tienen límites de longitud y
+cantidad. No se exponen credenciales o URLs, no se ejecuta SQL aportado por el
+usuario y no se modifica MySQL. El catálogo prepara el futuro compilador, pero
+esta fase todavía no genera ni ejecuta consultas.
 
 ## Operación de Docker Compose
 

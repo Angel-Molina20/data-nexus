@@ -43,9 +43,7 @@ class SchemaSynchronization(Base):
     warnings_json: Mapped[list[str]] = mapped_column(JSON, default=list)
     error_code: Mapped[str | None] = mapped_column(String(64))
     error_message: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class SchemaEntity(Base):
@@ -71,9 +69,7 @@ class SchemaEntity(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -81,9 +77,7 @@ class SchemaEntity(Base):
 
 class SchemaField(Base):
     __tablename__ = "schema_fields"
-    __table_args__ = (
-        UniqueConstraint("entity_id", "physical_name", name="uq_schema_field_key"),
-    )
+    __table_args__ = (UniqueConstraint("entity_id", "physical_name", name="uq_schema_field_key"),)
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     entity_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("schema_entities.id", ondelete="CASCADE"), index=True
@@ -110,9 +104,7 @@ class SchemaField(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -120,9 +112,7 @@ class SchemaField(Base):
 
 class SchemaIndex(Base):
     __tablename__ = "schema_indexes"
-    __table_args__ = (
-        UniqueConstraint("entity_id", "physical_name", name="uq_schema_index_key"),
-    )
+    __table_args__ = (UniqueConstraint("entity_id", "physical_name", name="uq_schema_index_key"),)
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     entity_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("schema_entities.id", ondelete="CASCADE"), index=True
@@ -134,9 +124,7 @@ class SchemaIndex(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -186,9 +174,7 @@ class SchemaPhysicalRelationship(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -227,6 +213,4 @@ class SchemaChange(Base):
     physical_name: Mapped[str] = mapped_column(String(512))
     previous_value_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     current_value_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

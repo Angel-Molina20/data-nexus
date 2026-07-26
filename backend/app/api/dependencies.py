@@ -4,8 +4,9 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.connections import ConnectionContext
+from app.application.relationships import RelationshipContext
 from app.application.schema import SchemaContext
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
 from app.domain.connections.models import ConnectionParameters, Engine
 from app.infrastructure.adapters.mysql import MySQLAdapter
@@ -14,6 +15,7 @@ from app.infrastructure.network.policy import DatabaseHostPolicy
 from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.connections import DatabaseConnectionRepository
 from app.infrastructure.repositories.schema import SchemaRepository
+from app.infrastructure.repositories.semantic import SemanticCatalogRepository
 from app.infrastructure.security.encryption import get_credential_encryption
 
 
@@ -66,3 +68,19 @@ def get_schema_context(
 
 
 SchemaContextDependency = Annotated[SchemaContext, Depends(get_schema_context)]
+
+
+def get_relationship_context(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> RelationshipContext:
+    return RelationshipContext(
+        session=session,
+        connections=DatabaseConnectionRepository(session),
+        catalog=SemanticCatalogRepository(session),
+        audit=AuditRepository(session),
+        settings=settings,
+    )
+
+
+RelationshipContextDependency = Annotated[RelationshipContext, Depends(get_relationship_context)]

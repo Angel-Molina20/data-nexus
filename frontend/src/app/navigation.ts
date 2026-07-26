@@ -31,6 +31,11 @@ export function getPageTitle(pathname: string): string {
     return "Historial de sincronizaciones";
   }
   if (/^\/connections\/[^/]+\/schema/.test(pathname)) return "Explorador de esquemas";
+  if (/^\/connections\/[^/]+\/relationships\/candidates$/.test(pathname)) return "Sugerencias de relaciones";
+  if (/^\/connections\/[^/]+\/relationships\/polymorphic\/new$/.test(pathname)) return "Nueva relación polimórfica";
+  if (/^\/connections\/[^/]+\/relationships\/new$/.test(pathname)) return "Nueva relación manual";
+  if (/^\/connections\/[^/]+\/relationships/.test(pathname)) return "Catálogo de relaciones";
+  if (/^\/connections\/[^/]+\/semantic-catalog/.test(pathname)) return "Catálogo semántico";
   if (/^\/connections\/[^/]+$/.test(pathname)) return "Detalle de conexión";
   return navigationItems.find((item) => item.path === pathname)?.label ?? "Página no encontrada";
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { KeyRound } from "lucide-react";
+import { Link } from "react-router";
 
 import { getSchemaEntity } from "../../services/schema";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -45,6 +46,10 @@ export function EntityDetailPanel({
           </StatusBadge>
         </div>
         <p className="mt-1 text-sm text-slate-500">{entity.entity_type} · {entity.schema_name}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link className="btn-secondary" to={`/connections/${connectionId}/relationships/new`}>Crear relación</Link>
+          <Link className="btn-secondary" to={`/connections/${connectionId}/semantic-catalog`}>Editar metadatos semánticos</Link>
+        </div>
       </div>
       <div className="flex overflow-x-auto border-b border-slate-200 px-3" role="tablist">
         {tabs.map((item) => (
@@ -94,7 +99,7 @@ export function EntityDetailPanel({
               </article>
             ))}
             {!relationships.length ? <p className="text-sm text-slate-500">No existen claves foráneas físicas.</p> : null}
-            <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Las relaciones inferidas, manuales y polimórficas se configurarán en la siguiente fase.</p>
+            <Link className="rounded-lg bg-blue-50 p-3 text-sm font-semibold text-blue-800" to={`/connections/${connectionId}/relationships`}>Ver relaciones físicas, inferidas, manuales y polimórficas</Link>
           </div>
         ) : null}
         {tab === "information" ? (

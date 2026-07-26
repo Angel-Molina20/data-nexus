@@ -35,7 +35,13 @@ from app.infrastructure.repositories.connections import DatabaseConnectionReposi
 from app.infrastructure.security.encryption import CredentialEncryption
 
 TECHNICAL_FIELDS = {
-    "host", "port", "database_name", "username", "password", "ssl_enabled", "configuration"
+    "host",
+    "port",
+    "database_name",
+    "username",
+    "password",
+    "ssl_enabled",
+    "configuration",
 }
 
 
@@ -245,9 +251,13 @@ class UpdateConnectionService:
                 if request.password is not None:
                     model.encrypted_password = self.context.encryption.encrypt_secret(password)
             for source, target in {
-                "name": "name", "host": "host", "port": "port",
-                "database_name": "database_name", "username": "username",
-                "ssl_enabled": "ssl_enabled", "configuration": "configuration_json",
+                "name": "name",
+                "host": "host",
+                "port": "port",
+                "database_name": "database_name",
+                "username": "username",
+                "ssl_enabled": "ssl_enabled",
+                "configuration": "configuration_json",
             }.items():
                 if source in changes:
                     setattr(model, target, changes[source])
@@ -255,9 +265,7 @@ class UpdateConnectionService:
             await self.context.session.refresh(model)
             return to_detail(model)
 
-        return await _audit_call(
-            self.context, "connection.update", operation(), connection_id
-        )  # type: ignore[return-value]
+        return await _audit_call(self.context, "connection.update", operation(), connection_id)  # type: ignore[return-value]
 
 
 class DeleteConnectionService:
@@ -310,9 +318,7 @@ class RetestConnectionService:
             await self.context.session.flush()
             return tested
 
-        return await _audit_call(
-            self.context, "connection.retest", operation(), connection_id
-        )  # type: ignore[return-value]
+        return await _audit_call(self.context, "connection.retest", operation(), connection_id)  # type: ignore[return-value]
 
 
 async def require_connection(

@@ -1,5 +1,4 @@
 import {
-  BookOpenText,
   CalendarClock,
   FileBarChart,
   SearchCode,
@@ -16,9 +15,15 @@ import { HomePage } from "../pages/HomePage";
 import { ModulePage } from "../pages/ModulePage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { NewConnectionPage } from "../pages/NewConnectionPage";
+import { ManualRelationshipPage } from "../pages/ManualRelationshipPage";
+import { PolymorphicRelationshipPage } from "../pages/PolymorphicRelationshipPage";
+import { RelationshipCandidatesPage } from "../pages/RelationshipCandidatesPage";
+import { RelationshipsPage } from "../pages/RelationshipsPage";
 import { SchemaExplorerPage } from "../pages/SchemaExplorerPage";
 import { SchemaIndexPage } from "../pages/SchemaIndexPage";
 import { SchemaSynchronizationsPage } from "../pages/SchemaSynchronizationsPage";
+import { SemanticCatalogIndexPage } from "../pages/SemanticCatalogIndexPage";
+import { SemanticCatalogPage } from "../pages/SemanticCatalogPage";
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +39,11 @@ export const router = createBrowserRouter([
       { path: "connections/:id/schema", Component: SchemaExplorerPage },
       { path: "connections/:id/schema/entities/:entityId", Component: SchemaExplorerPage },
       { path: "connections/:id/schema/synchronizations", Component: SchemaSynchronizationsPage },
+      { path: "connections/:id/relationships", Component: RelationshipsPage },
+      { path: "connections/:id/relationships/candidates", Component: RelationshipCandidatesPage },
+      { path: "connections/:id/relationships/new", Component: ManualRelationshipPage },
+      { path: "connections/:id/relationships/polymorphic/new", Component: PolymorphicRelationshipPage },
+      { path: "connections/:id/semantic-catalog", Component: SemanticCatalogPage },
       {
         path: "queries",
         element: (
@@ -58,18 +68,7 @@ export const router = createBrowserRouter([
           />
         ),
       },
-      {
-        path: "semantic-catalog",
-        element: (
-          <ModulePage
-            title="Catálogo semántico"
-            description="Define relaciones y conceptos reutilizables para comprender los datos."
-            detail="El catálogo se habilitará después de sincronizar las estructuras de las fuentes."
-            icon={BookOpenText}
-            phase="Fase 5"
-          />
-        ),
-      },
+      { path: "semantic-catalog", Component: SemanticCatalogIndexPage },
       {
         path: "schedules",
         element: (
