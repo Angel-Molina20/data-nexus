@@ -12,6 +12,7 @@ services:
       POSTGRES_PORT: "5432"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      ALLOWED_DATABASE_HOSTS: ${ALLOWED_DATABASE_HOSTS:-mysql56,mysql8}
     command:
       - uvicorn
       - app.main:app
@@ -45,7 +46,8 @@ services:
       context: ./frontend
       target: development
     environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+      VITE_PROXY_TARGET: http://backend:8000
     command:
       - pnpm
       - dev

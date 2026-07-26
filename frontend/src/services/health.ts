@@ -1,6 +1,6 @@
 export type BackendStatusValue = "checking" | "available" | "unavailable";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api/v1";
 let healthCheckPromise: Promise<BackendStatusValue> | undefined;
 
 function isHealthResponse(value: unknown): boolean {
@@ -13,10 +13,6 @@ function isHealthResponse(value: unknown): boolean {
 }
 
 export async function checkBackendHealth(signal?: AbortSignal): Promise<BackendStatusValue> {
-  if (!apiBaseUrl) {
-    return "unavailable";
-  }
-
   try {
     const response = await fetch(`${apiBaseUrl}/health`, {
       headers: { Accept: "application/json" },

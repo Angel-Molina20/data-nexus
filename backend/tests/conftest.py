@@ -1,7 +1,13 @@
+import os
 from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+os.environ.setdefault(
+    "CREDENTIAL_ENCRYPTION_KEY",
+    "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=",
+)
 
 from app.main import app
 
