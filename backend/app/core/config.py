@@ -53,6 +53,10 @@ class Settings(BaseSettings):
         "::1",
     ]
     ENABLE_API_DOCS: bool = True
+    SCHEMA_SYNC_TIMEOUT_SECONDS: int = Field(default=60, ge=5, le=900)
+    SCHEMA_SYNC_MAX_ENTITIES: int = Field(default=5000, ge=1, le=100000)
+    SCHEMA_SYNC_INCLUDE_VIEWS: bool = True
+    SCHEMA_SYNC_INCLUDE_SYSTEM_SCHEMAS: bool = False
 
     @property
     def database_url(self) -> str:

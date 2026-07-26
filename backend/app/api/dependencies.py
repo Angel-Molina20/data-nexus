@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.connections import ConnectionContext
+from app.application.schema import SchemaContext
 from app.core.config import get_settings
 from app.db.session import get_db_session
 from app.domain.connections.models import ConnectionParameters, Engine
@@ -12,6 +13,7 @@ from app.infrastructure.adapters.registry import AdapterRegistry
 from app.infrastructure.network.policy import DatabaseHostPolicy
 from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.connections import DatabaseConnectionRepository
+from app.infrastructure.repositories.schema import SchemaRepository
 from app.infrastructure.security.encryption import get_credential_encryption
 
 
@@ -45,3 +47,22 @@ def get_connection_context(
 
 
 ConnectionContextDependency = Annotated[ConnectionContext, Depends(get_connection_context)]
+
+
+def get_schema_context(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> SchemaContext:
+    base = get_connection_context(session)
+    return SchemaContext(
+        session=session,
+        connections=base.connections,
+        schemas=SchemaRepository(session),
+        audit=base.audit,
+        adapters=base.adapters,
+        encryption=base.encryption,
+        host_policy=base.host_policy,
+        settings=get_settings(),
+    )
+
+
+SchemaContextDependency = Annotated[SchemaContext, Depends(get_schema_context)]

@@ -1,0 +1,1 @@
+"""Universal schema metadata domain."""

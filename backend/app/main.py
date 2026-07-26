@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.errors import public_error_handler, validation_error_handler
 from app.api.routers.connections import router as connections_router
 from app.api.routers.health import router as health_router
+from app.api.routers.schema import router as schema_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import close_database_engine
@@ -46,5 +47,6 @@ app.add_middleware(
 )
 app.include_router(health_router, prefix=settings.API_V1_PREFIX)
 app.include_router(connections_router, prefix=settings.API_V1_PREFIX)
+app.include_router(schema_router, prefix=settings.API_V1_PREFIX)
 app.add_exception_handler(PublicError, public_error_handler)  # type: ignore[arg-type]
 app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]
