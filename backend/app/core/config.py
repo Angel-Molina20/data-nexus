@@ -99,6 +99,11 @@ class Settings(BaseSettings):
     QUERY_MAX_DECLARED_LIMIT: int = Field(default=100000, ge=1, le=10000000)
     QUERY_DEFAULT_PREVIEW_LIMIT: int = Field(default=100, ge=1, le=10000)
     QUERY_MAX_DOCUMENT_SIZE_KB: int = Field(default=512, ge=16, le=4096)
+    QUERY_COMPILATION_TIMEOUT_SECONDS: int = Field(default=10, ge=1, le=60)
+    QUERY_MAX_GENERATED_SQL_KB: int = Field(default=512, ge=16, le=4096)
+    QUERY_MAX_BOUND_PARAMETERS: int = Field(default=5000, ge=1, le=50000)
+    QUERY_COMPILER_PRETTY_SQL: bool = True
+    QUERY_COMPILER_STORE_RESULTS: bool = True
 
     @model_validator(mode="after")
     def secure_production_session(self) -> "Settings":

@@ -1,4 +1,4 @@
-import type { Complexity, QueryDocument, SavedQuery, SavedQueryList, ValidationResult } from "../features/queries/types";
+import type { CompilationHistoryItem, CompilationResult, CompilerCapabilities, Complexity, QueryDocument, SavedQuery, SavedQueryList, ValidationResult } from "../features/queries/types";
 import { apiRequest } from "./shared";
 
 export const getQueryModelSchema = () => apiRequest<Record<string, unknown>>("/query-model/schema");
@@ -13,3 +13,8 @@ export const deleteQuery = (id: string) => apiRequest<undefined>(`/queries/${id}
 export const archiveQuery = (id: string) => apiRequest<SavedQuery>(`/queries/${id}/archive`, { method: "POST" });
 export const duplicateQuery = (id: string) => apiRequest<SavedQuery>(`/queries/${id}/duplicate`, { method: "POST" });
 export const validateSavedQuery = (id: string) => apiRequest<ValidationResult>(`/queries/${id}/validate`, { method: "POST" });
+export const compileUniversalQuery = (document: QueryDocument) => apiRequest<CompilationResult>("/query-compiler/compile", { method: "POST", body: JSON.stringify({ document, mode: "definition", preview_values: {} }) });
+export const compileSavedQuery = (id: string) => apiRequest<CompilationResult>(`/queries/${id}/compile`, { method: "POST" });
+export const getCompilerCapabilities = (connectionId: string) => apiRequest<CompilerCapabilities>(`/query-compiler/capabilities/${connectionId}`);
+export const listQueryCompilations = (id: string) => apiRequest<{ items: CompilationHistoryItem[] }>(`/queries/${id}/compilations`);
+export const getQueryCompilation = (queryId: string, compilationId: string) => apiRequest<CompilationResult>(`/queries/${queryId}/compilations/${compilationId}`);
