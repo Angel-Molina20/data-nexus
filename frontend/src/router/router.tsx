@@ -31,6 +31,7 @@ import { QueriesPage } from "../pages/QueriesPage";
 import { QueryDetailPage } from "../pages/QueryDetailPage";
 import { QueryJsonEditorPage } from "../pages/QueryJsonEditorPage";
 import { QueryCompilePage } from "../pages/QueryCompilePage";
+import { QueryBuilderPage } from "../pages/QueryBuilderPage";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: LoginPage },
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
       { path: "queries", element: <PermissionGuard permission="queries.read"><QueriesPage /></PermissionGuard> },
       { path: "queries/new", element: <PermissionGuard permission="queries.create"><NewQueryPage /></PermissionGuard> },
       { path: "queries/:id", element: <PermissionGuard permission="queries.read"><QueryDetailPage /></PermissionGuard> },
+      { path: "queries/:id/builder", element: <PermissionGuard permission="queries.read"><QueryBuilderPage /></PermissionGuard> },
       { path: "queries/:id/edit-json", element: <PermissionGuard permission="queries.update"><QueryJsonEditorPage /></PermissionGuard> },
       { path: "queries/:id/compile", element: <PermissionGuard permission="queries.compile"><QueryCompilePage /></PermissionGuard> },
       {

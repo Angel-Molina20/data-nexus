@@ -189,10 +189,59 @@ def test_compiles_physical_join() -> None:
             "relationship_id": str(PHYSICAL_RELATIONSHIP),
         }
     ]
+    body["select"].append(
+        {
+            "select_id": "career_id",
+            "item_type": "field",
+            "expression": {
+                "node_type": "field",
+                "source_id": "careers",
+                "field_id": str(CAREER_FIELD),
+            },
+        }
+    )
     result = compile_document(document)
     assert "INNER JOIN `academic`.`careers` AS `c`" in result.sql
     assert "`s`.`career_id` = `c`.`id`" in result.sql
+    assert "`c`.`id`" in result.sql
     assert result.capabilities_used == ("supports_joins",)
+
+
+def test_compiles_physical_join_when_main_source_is_relationship_target() -> None:
+    document = base_query()
+    body = document["query"]
+    assert isinstance(body, dict)
+    body["source"] = {
+        "source_id": "careers",
+        "entity_id": str(CAREERS_ID),
+        "alias": "c",
+    }
+    body["select"] = [
+        {
+            "select_id": "student_name",
+            "item_type": "field",
+            "expression": {
+                "node_type": "field",
+                "source_id": "students",
+                "field_id": str(STUDENT_NAME),
+            },
+        }
+    ]
+    body["joins"] = [
+        {
+            "join_id": "student_join",
+            "join_type": "inner",
+            "source": {"source_id": "students", "entity_id": str(STUDENTS_ID), "alias": "s"},
+            "relationship_id": str(PHYSICAL_RELATIONSHIP),
+        }
+    ]
+
+    result = compile_document(document)
+
+    assert "FROM `academic`.`careers` AS `c`" in result.sql
+    assert "INNER JOIN `academic`.`students` AS `s`" in result.sql
+    assert "`s`.`career_id` = `c`.`id`" in result.sql
+    assert "`s`.`name`" in result.sql
 
 
 def test_polymorphic_join_always_binds_discriminator_and_identifier() -> None:

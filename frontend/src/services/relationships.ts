@@ -79,6 +79,13 @@ export const createPolymorphicRelationship = (
     method: "POST",
     body: JSON.stringify(payload),
   });
+export const getPolymorphicRelationship = (connectionId: string, relationshipId: string) =>
+  apiRequest<{
+    id: string; source_entity_id: string; source_entity: string; type_field_id: string;
+    type_field: string; id_field_id: string; id_field: string; name: string;
+    display_name: string; status: string; is_enabled: boolean; invalid_reason: string | null;
+    mappings: Array<{ id: string; type_value: string; target_entity_id: string; target_entity: string; target_field_id: string; target_field: string; display_name: string; is_enabled: boolean }>;
+  }>(`${base(connectionId)}/polymorphic/${encodeURIComponent(relationshipId)}`);
 export const addPolymorphicMapping = (
   connectionId: string,
   relationshipId: string,

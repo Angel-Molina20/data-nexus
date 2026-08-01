@@ -367,6 +367,27 @@ QUERY_COMPILER_STORE_RESULTS=true
 Esta fase no ejecuta consultas, no conecta con MySQL para compilar y no permite editar el SQL
 producido. La ejecución, resultados y parámetros reales corresponden a una fase posterior.
 
+## Constructor visual de consultas (Fase 8)
+
+La ruta `/queries/:queryId/builder` edita directamente el AST universal. El catálogo izquierdo
+utiliza entidades y campos sincronizados; React Flow representa fuentes y joins; el inspector
+configura selección, filtros `WHERE`/`HAVING`, agregaciones, agrupación, orden, parámetros y
+ramas `UNION`. Las relaciones físicas, inferidas confirmadas, manuales y polimórficas se añaden
+por UUID; estas últimas requieren un mapping que conserva discriminador e identificador.
+
+El constructor mantiene undo/redo, cambios sin guardar y revisión optimista. Las posiciones del
+diagrama viven en `metadata.builder_layout`, se validan en backend y no forman parte del
+fingerprint lógico. La validación y la complejidad proceden del modelo universal; el SQL mostrado
+procede exclusivamente del compilador backend, contiene placeholders, es de solo lectura y
+siempre informa `executed=false`.
+
+En escritorio se muestran catálogo, lienzo e inspector simultáneamente; en resoluciones menores
+los paneles se colapsan para priorizar el lienzo. Drag and drop no es obligatorio para operar:
+campos, relaciones y orden también disponen de botones accesibles. Los límites visuales pueden
+ajustarse con `VITE_QUERY_BUILDER_*`, pero los controles de seguridad reales permanecen en el
+backend. Esta fase no ejecuta consultas, no muestra resultados, no persiste valores reales de
+parámetros y no permite escribir o editar SQL.
+
 ```bash
 make build       # construir imágenes
 make up          # construir e iniciar en segundo plano

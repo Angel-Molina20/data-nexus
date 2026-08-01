@@ -43,6 +43,30 @@ def test_minimal_query_normalization_and_fingerprint_are_deterministic() -> None
     assert validate_limits(query, get_settings()) == []
 
 
+def test_builder_layout_is_validated_without_changing_logical_fingerprint() -> None:
+    base = UniversalQuery.model_validate(minimal_document())
+    document = minimal_document()
+    document["connection_id"] = str(base.connection_id)
+    query_body = document["query"]
+    assert isinstance(query_body, dict)
+    query_body["source"] = base.query.source.model_dump(mode="json")
+    document["metadata"] = {
+        "created_from": "future_visual_builder",
+        "builder_layout": {
+            "nodes": {"src_students": {"x": 120, "y": 80, "collapsed": False}},
+            "panels": {"catalog_width": 300, "inspector_width": 380},
+        },
+    }
+    with_layout = UniversalQuery.model_validate(document)
+    assert with_layout.metadata.builder_layout is not None
+    assert query_fingerprint(base) == query_fingerprint(with_layout)
+
+    invalid = minimal_document()
+    invalid["metadata"] = {"builder_layout": {"nodes": {"src_students": {"x": 999999, "y": 0}}}}
+    with pytest.raises(ValidationError):
+        UniversalQuery.model_validate(invalid)
+
+
 def test_unknown_schema_version_is_rejected() -> None:
     document = minimal_document()
     document["schema_version"] = "99.0"

@@ -354,12 +354,29 @@ class QueryParameterDefinition(QueryNode):
         return self
 
 
+class BuilderNodeLayout(QueryNode):
+    x: float = Field(ge=-100000, le=100000)
+    y: float = Field(ge=-100000, le=100000)
+    collapsed: bool = False
+
+
+class BuilderPanelLayout(QueryNode):
+    catalog_width: int = Field(default=280, ge=220, le=520)
+    inspector_width: int = Field(default=360, ge=280, le=640)
+
+
+class QueryBuilderLayout(QueryNode):
+    nodes: dict[Identifier, BuilderNodeLayout] = Field(default_factory=dict, max_length=200)
+    panels: BuilderPanelLayout = Field(default_factory=BuilderPanelLayout)
+
+
 class QueryMetadata(QueryNode):
     name: str | None = Field(default=None, max_length=160)
     description: str | None = Field(default=None, max_length=2000)
     tags: list[str] = Field(default_factory=list, max_length=50)
     created_from: Literal["api", "future_visual_builder", "import"] = "api"
     notes: str | None = Field(default=None, max_length=2000)
+    builder_layout: QueryBuilderLayout | None = None
 
 
 class QueryOptions(QueryNode):
