@@ -346,6 +346,24 @@ class SemanticCatalogRepository:
             )
         ).one_or_none()
 
+    async def polymorphic_by_fields(
+        self,
+        connection_id: uuid.UUID,
+        source_entity_id: uuid.UUID,
+        type_field_id: uuid.UUID,
+        id_field_id: uuid.UUID,
+    ) -> PolymorphicRelationship | None:
+        return (
+            await self.session.scalars(
+                select(PolymorphicRelationship).where(
+                    PolymorphicRelationship.connection_id == connection_id,
+                    PolymorphicRelationship.source_entity_id == source_entity_id,
+                    PolymorphicRelationship.type_field_id == type_field_id,
+                    PolymorphicRelationship.id_field_id == id_field_id,
+                )
+            )
+        ).one_or_none()
+
     async def mappings(self, relationship_id: uuid.UUID) -> list[PolymorphicRelationshipMapping]:
         return list(
             (

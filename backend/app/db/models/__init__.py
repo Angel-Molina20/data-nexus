@@ -9,6 +9,7 @@ from app.db.models.auth import (
     UserSession,
 )
 from app.db.models.database_connection import DatabaseConnection
+from app.db.models.execution import QueryExecution
 from app.db.models.query import QueryCompilation, SavedQuery
 from app.db.models.schema import (
     SchemaChange,
@@ -39,6 +40,7 @@ __all__ = [
     "UserRole",
     "UserSession",
     "DatabaseConnection",
+    "QueryExecution",
     "SavedQuery",
     "QueryCompilation",
     "SchemaChange",

@@ -4,6 +4,9 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
+from app.domain.connections.models import ConnectionParameters
+from app.infrastructure.adapters.mysql import MySQLAdapter
+
 
 def mysql_payload(prefix: str, *, password: str | None = None) -> dict[str, object]:
     return {
@@ -64,3 +67,34 @@ async def test_wrong_password_returns_safe_error(async_client: AsyncClient) -> N
     assert response.status_code == 400
     assert response.json()["code"] == "AUTHENTICATION_FAILED"
     assert "definitely-wrong" not in response.text
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("prefix", ["MYSQL56", "MYSQL8"])
+def test_read_only_execution_adapter_returns_normalized_parameterized_rows(prefix: str) -> None:
+    adapter = MySQLAdapter(
+        ConnectionParameters(
+            host=os.environ[f"{prefix}_HOST"],
+            port=int(os.environ[f"{prefix}_PORT"]),
+            database_name=os.environ[f"{prefix}_DATABASE"],
+            username=os.environ[f"{prefix}_USER"],
+            password=os.environ[f"{prefix}_PASSWORD"],
+            ssl_enabled=False,
+            configuration={},
+        ),
+        connect_timeout=10,
+        read_timeout=15,
+        write_timeout=15,
+    )
+    try:
+        result = adapter.execute_query(
+            "SELECT :value AS amount, CAST(NULL AS CHAR) AS optional_value",
+            {"value": 42},
+            max_rows=10,
+            max_response_bytes=4096,
+        )
+    finally:
+        adapter.close()
+    assert result.rows == ({"amount": 42, "optional_value": None},)
+    assert [column.key for column in result.columns] == ["amount", "optional_value"]
+    assert result.columns[0].data_type == "integer"

@@ -1,5 +1,10 @@
 # DataNexus
 
+## Inicio obligatorio de sesión
+
+* Antes de revisar, planificar o modificar el proyecto, toda nueva sesión debe
+  leer completamente `docs/PROJECT_STATUS.md` junto con este archivo.
+
 ## Objetivo
 
 DataNexus es una plataforma visual de consultas y reportes multifuente.

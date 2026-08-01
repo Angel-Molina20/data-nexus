@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 
 from anyio import fail_after, to_thread
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from app.api.schemas.schema import (
     ChangeListResponse,
@@ -59,7 +59,10 @@ class SynchronizeSchemaService:
 
     async def execute(self, connection_id: uuid.UUID) -> SynchronizationResponse:
         connection = await _require_connection(self.context, connection_id)
-        if not await self.context.schemas.try_lock(connection_id):
+        lock_connection: AsyncConnection | None = await self.context.schemas.acquire_lock(
+            connection_id
+        )
+        if lock_connection is None:
             raise PublicError(
                 "SCHEMA_SYNC_IN_PROGRESS",
                 "Ya existe una sincronización en curso para esta conexión.",
@@ -189,8 +192,7 @@ class SynchronizeSchemaService:
                     await self.context.session.commit()
             raise
         finally:
-            await self.context.schemas.unlock(connection_id)
-            await self.context.session.commit()
+            await self.context.schemas.release_lock(lock_connection, connection_id)
 
 
 class GetSchemaSummaryService:

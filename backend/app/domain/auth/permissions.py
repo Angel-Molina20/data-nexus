@@ -58,6 +58,7 @@ SYSTEM_ROLES: Final[dict[str, set[str]]] = {
         "queries.delete",
         "queries.validate",
         "queries.compile",
+        "queries.execute",
     },
     "viewer": {
         "connections.read",

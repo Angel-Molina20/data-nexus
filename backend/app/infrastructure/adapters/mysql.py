@@ -1,4 +1,8 @@
+import json
+import threading
 from collections.abc import Sequence
+from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Any
 
 from pymysql.err import OperationalError
@@ -14,6 +18,7 @@ from app.domain.connections.models import (
     ServerInspection,
 )
 from app.domain.connections.versioning import detect_provider, parse_server_version
+from app.domain.query_execution.models import ExecutionColumn, ExecutionResult
 from app.domain.schema.models import (
     EntityType,
     InspectedEntity,
@@ -60,6 +65,8 @@ class MySQLAdapter(DataSourceAdapter):
             connect_args=connect_args,
         )
         self._inspection: ServerInspection | None = None
+        self._active_connection: Any | None = None
+        self._active_lock = threading.Lock()
 
     def test_connection(self) -> None:
         try:
@@ -128,6 +135,85 @@ class MySQLAdapter(DataSourceAdapter):
         version = parse_server_version(inspection.version)
         provider = detect_provider(inspection.version, inspection.version_comment)
         return build_mysql_capabilities(version.tuple, provider)
+
+    def execute_query(
+        self,
+        sql: str,
+        parameters: dict[str, object],
+        *,
+        max_rows: int,
+        max_response_bytes: int,
+    ) -> ExecutionResult:
+        try:
+            with self._engine.connect() as connection:
+                with self._active_lock:
+                    self._active_connection = connection
+                transaction = connection.begin()
+                try:
+                    connection.execute(text("SET TRANSACTION READ ONLY"))
+                    result = connection.execution_options(stream_results=True).execute(
+                        text(sql), parameters
+                    )
+                    labels = [str(item) for item in result.keys()]
+                    keys = _unique_column_keys(labels)
+                    raw_rows = result.fetchmany(max_rows + 1)
+                    truncated = len(raw_rows) > max_rows
+                    rows: list[dict[str, Any]] = []
+                    approximate_bytes = 0
+                    response_limited = False
+                    for raw_row in raw_rows[:max_rows]:
+                        normalized = {
+                            key: _normalize_value(raw_row[index]) for index, key in enumerate(keys)
+                        }
+                        row_bytes = len(json.dumps(normalized, ensure_ascii=False).encode())
+                        if approximate_bytes + row_bytes > max_response_bytes:
+                            response_limited = True
+                            break
+                        approximate_bytes += row_bytes
+                        rows.append(normalized)
+                    columns = tuple(
+                        ExecutionColumn(
+                            key=key,
+                            label=label,
+                            data_type=_infer_column_type(
+                                next(
+                                    (row[index] for row in raw_rows if row[index] is not None), None
+                                )
+                            ),
+                            nullable=any(row[index] is None for row in raw_rows),
+                        )
+                        for index, (key, label) in enumerate(zip(keys, labels, strict=True))
+                    )
+                    return ExecutionResult(
+                        columns=columns,
+                        rows=tuple(rows),
+                        truncated=truncated or response_limited,
+                        approximate_bytes=approximate_bytes,
+                        warnings=(
+                            ("La respuesta alcanzó el límite máximo de tamaño.",)
+                            if response_limited
+                            else ()
+                        ),
+                    )
+                finally:
+                    transaction.rollback()
+                    with self._active_lock:
+                        self._active_connection = None
+        except PublicError:
+            raise
+        except (OperationalError, DBAPIError, SQLAlchemyError) as error:
+            raise map_mysql_error(error) from error
+
+    def cancel_query(self) -> bool:
+        with self._active_lock:
+            connection = self._active_connection
+        if connection is None:
+            return False
+        try:
+            connection.invalidate()
+            return True
+        except SQLAlchemyError:
+            return False
 
     def inspect_schema(
         self,
@@ -377,6 +463,52 @@ def _serialize_default(value: object) -> str | int | float | bool | None:
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     return str(value)
+
+
+def _unique_column_keys(labels: list[str]) -> list[str]:
+    seen: dict[str, int] = {}
+    keys: list[str] = []
+    for label in labels:
+        base = label or "column"
+        seen[base] = seen.get(base, 0) + 1
+        keys.append(base if seen[base] == 1 else f"{base}__{seen[base]}")
+    return keys
+
+
+def _normalize_value(value: object) -> object:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, (date, datetime, time)):
+        return value.isoformat()
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return {"binary": True, "size": len(value)}
+    if isinstance(value, (dict, list)):
+        return value
+    return str(value)
+
+
+def _infer_column_type(value: object) -> str:
+    if value is None:
+        return "unknown"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, (Decimal, float)):
+        return "decimal"
+    if isinstance(value, datetime):
+        return "datetime"
+    if isinstance(value, date):
+        return "date"
+    if isinstance(value, time):
+        return "time"
+    if isinstance(value, (dict, list)):
+        return "json"
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return "binary"
+    return "string"
 
 
 def map_mysql_error(error: Exception) -> PublicError:

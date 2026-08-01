@@ -104,6 +104,15 @@ class Settings(BaseSettings):
     QUERY_MAX_BOUND_PARAMETERS: int = Field(default=5000, ge=1, le=50000)
     QUERY_COMPILER_PRETTY_SQL: bool = True
     QUERY_COMPILER_STORE_RESULTS: bool = True
+    QUERY_EXECUTION_DEFAULT_PAGE_SIZE: int = Field(default=50, ge=1, le=500)
+    QUERY_EXECUTION_MAX_PAGE_SIZE: int = Field(default=500, ge=1, le=5000)
+    QUERY_EXECUTION_MAX_ROWS: int = Field(default=5000, ge=1, le=100000)
+    QUERY_EXECUTION_TIMEOUT_SECONDS: int = Field(default=30, ge=1, le=900)
+    QUERY_EXECUTION_MAX_RESPONSE_BYTES: int = Field(default=10485760, ge=1024, le=104857600)
+    QUERY_EXECUTION_HISTORY_LIMIT: int = Field(default=50, ge=1, le=500)
+    QUERY_EXECUTION_INCLUDE_SQL_BY_DEFAULT: bool = False
+    QUERY_EXECUTION_ALLOW_TOTAL_COUNT: bool = False
+    QUERY_EXECUTION_MAX_CONCURRENT_PER_USER: int = Field(default=3, ge=1, le=20)
 
     @model_validator(mode="after")
     def secure_production_session(self) -> "Settings":

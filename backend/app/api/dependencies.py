@@ -10,12 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.auth import AuthContext, AuthorizationService, SessionPrincipal, SessionService
 from app.application.compilations import CompilerContext, create_compiler_registry
 from app.application.connections import ConnectionContext
+from app.application.executions import ExecutionContext
 from app.application.queries import QueryContext
 from app.application.relationships import RelationshipContext
 from app.application.schema import SchemaContext
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
 from app.domain.connections.models import ConnectionParameters, Engine
+from app.infrastructure.adapters.active_executions import active_execution_registry
 from app.infrastructure.adapters.mysql import MySQLAdapter
 from app.infrastructure.adapters.registry import AdapterRegistry
 from app.infrastructure.network.policy import DatabaseHostPolicy
@@ -23,6 +25,7 @@ from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.auth import AuthRepository
 from app.infrastructure.repositories.compilations import CompilationRepository
 from app.infrastructure.repositories.connections import DatabaseConnectionRepository
+from app.infrastructure.repositories.executions import QueryExecutionRepository
 from app.infrastructure.repositories.queries import SavedQueryRepository
 from app.infrastructure.repositories.schema import SchemaRepository
 from app.infrastructure.repositories.semantic import SemanticCatalogRepository
@@ -243,3 +246,23 @@ def get_compiler_context(
 
 
 CompilerContextDependency = Annotated[CompilerContext, Depends(get_compiler_context)]
+
+
+def get_execution_context(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ExecutionContext:
+    connections = get_connection_context(session)
+    compiler = get_compiler_context(session, settings)
+    return ExecutionContext(
+        session=session,
+        executions=QueryExecutionRepository(session),
+        compiler=compiler,
+        adapters=connections.adapters,
+        encryption=connections.encryption,
+        active=active_execution_registry,
+        settings=settings,
+    )
+
+
+ExecutionContextDependency = Annotated[ExecutionContext, Depends(get_execution_context)]

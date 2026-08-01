@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas.relationships import (
@@ -510,6 +511,18 @@ class PolymorphicRelationshipService:
                 400,
             )
         await _validate_polymorphic_source(self.context, connection_id, request)
+        existing = await self.context.catalog.polymorphic_by_fields(
+            connection_id,
+            request.source_entity_id,
+            request.type_field_id,
+            request.id_field_id,
+        )
+        if existing is not None:
+            raise PublicError(
+                "POLYMORPHIC_RELATIONSHIP_ALREADY_EXISTS",
+                "Ya existe una relación polimórfica para esos campos.",
+                409,
+            )
         relation = PolymorphicRelationship(
             connection_id=connection_id,
             source_entity_id=request.source_entity_id,
@@ -522,7 +535,15 @@ class PolymorphicRelationshipService:
             is_enabled=True,
         )
         self.context.session.add(relation)
-        await self.context.session.flush()
+        try:
+            await self.context.session.flush()
+        except IntegrityError as error:
+            await self.context.session.rollback()
+            raise PublicError(
+                "POLYMORPHIC_RELATIONSHIP_ALREADY_EXISTS",
+                "Ya existe una relación polimórfica para esos campos.",
+                409,
+            ) from error
         for mapping in request.mappings:
             await self._add_mapping(connection_id, relation, mapping)
         await _audit_and_commit(self.context, connection_id, "relationship.polymorphic.create")

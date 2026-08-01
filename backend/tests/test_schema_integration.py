@@ -52,6 +52,51 @@ async def test_schema_catalog_lifecycle(async_client: AsyncClient, prefix: str) 
     assert any(index["fields"] for index in detail.json()["indexes"])
     assert detail.json()["outgoing_relationships"]
 
+    documents = await async_client.get(
+        f"/api/v1/connections/{connection_id}/schema/entities",
+        params={"search": "documents"},
+    )
+    careers = await async_client.get(
+        f"/api/v1/connections/{connection_id}/schema/entities",
+        params={"search": "careers"},
+    )
+    documents_detail = await async_client.get(
+        f"/api/v1/connections/{connection_id}/schema/entities/{documents.json()['items'][0]['id']}"
+    )
+    careers_detail = await async_client.get(
+        f"/api/v1/connections/{connection_id}/schema/entities/{careers.json()['items'][0]['id']}"
+    )
+    document_fields = {
+        item["physical_name"]: item["id"] for item in documents_detail.json()["fields"]
+    }
+    career_fields = {item["physical_name"]: item["id"] for item in careers_detail.json()["fields"]}
+    polymorphic_payload = {
+        "source_entity_id": documents.json()["items"][0]["id"],
+        "type_field_id": document_fields["class"],
+        "id_field_id": document_fields["class_id"],
+        "name": "documents_career",
+        "display_name": "Documentos de carrera",
+        "mappings": [
+            {
+                "type_value": "Career",
+                "target_entity_id": careers.json()["items"][0]["id"],
+                "target_field_id": career_fields["id"],
+                "display_name": "Carrera",
+            }
+        ],
+    }
+    polymorphic = await async_client.post(
+        f"/api/v1/connections/{connection_id}/relationships/polymorphic",
+        json=polymorphic_payload,
+    )
+    assert polymorphic.status_code == 201
+    duplicate = await async_client.post(
+        f"/api/v1/connections/{connection_id}/relationships/polymorphic",
+        json=polymorphic_payload,
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["code"] == "POLYMORPHIC_RELATIONSHIP_ALREADY_EXISTS"
+
     history = await async_client.get(f"/api/v1/connections/{connection_id}/schema/synchronizations")
     assert history.status_code == 200
     assert history.json()["total"] == 2
@@ -60,13 +105,10 @@ async def test_schema_catalog_lifecycle(async_client: AsyncClient, prefix: str) 
         f"/api/v1/connections/{connection_id}/relationships/candidates"
     )
     assert candidates.status_code == 200
-    inferred = [
-        item for item in candidates.json()["items"] if item["type"] == "inferred"
-    ]
+    inferred = [item for item in candidates.json()["items"] if item["type"] == "inferred"]
     assert inferred
     confirmed = await async_client.post(
-        f"/api/v1/connections/{connection_id}/relationships/"
-        f"candidates/{inferred[0]['id']}/confirm",
+        f"/api/v1/connections/{connection_id}/relationships/candidates/{inferred[0]['id']}/confirm",
         json={},
     )
     assert confirmed.status_code == 200
@@ -85,20 +127,14 @@ async def test_schema_catalog_lifecycle(async_client: AsyncClient, prefix: str) 
         assert redetected.status_code == 200
         assert redetected.json()["preserved_rejections"] >= 1
 
-    graph = await async_client.get(
-        f"/api/v1/connections/{connection_id}/relationships/graph"
-    )
+    graph = await async_client.get(f"/api/v1/connections/{connection_id}/relationships/graph")
     assert graph.status_code == 200
     assert len(graph.json()["edges"]) >= result["relationships_discovered"]
 
-    semantic = await async_client.get(
-        f"/api/v1/connections/{connection_id}/semantic/entities"
-    )
+    semantic = await async_client.get(f"/api/v1/connections/{connection_id}/semantic/entities")
     assert semantic.status_code == 200
     students_id = next(
-        item["id"]
-        for item in semantic.json()["items"]
-        if item["physical_name"] == "students"
+        item["id"] for item in semantic.json()["items"] if item["physical_name"] == "students"
     )
     semantic_detail = await async_client.get(
         f"/api/v1/connections/{connection_id}/semantic/entities/{students_id}"
