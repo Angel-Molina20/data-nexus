@@ -33,6 +33,14 @@ PERMISSIONS: Final[dict[str, tuple[str, str]]] = {
     "roles.delete": ("Eliminar roles", "roles"),
     "roles.manage_permissions": ("Asignar permisos", "roles"),
     "audit.read": ("Ver auditoría", "audit"),
+    "queries.read": ("Ver consultas", "queries"),
+    "queries.create": ("Crear consultas", "queries"),
+    "queries.update": ("Editar consultas", "queries"),
+    "queries.delete": ("Eliminar consultas", "queries"),
+    "queries.validate": ("Validar consultas", "queries"),
+    "queries.use_sensitive_fields": ("Usar campos sensibles", "queries"),
+    "queries.compile": ("Compilar consultas", "queries"),
+    "queries.execute": ("Ejecutar consultas", "queries"),
 }
 
 SYSTEM_ROLES: Final[dict[str, set[str]]] = {
@@ -44,6 +52,11 @@ SYSTEM_ROLES: Final[dict[str, set[str]]] = {
         "relationships.read",
         "semantic_catalog.read",
         "semantic_catalog.update",
+        "queries.read",
+        "queries.create",
+        "queries.update",
+        "queries.delete",
+        "queries.validate",
     },
     "viewer": {
         "connections.read",

@@ -1,0 +1,6 @@
+export type QueryDocument = Record<string, unknown> & { schema_version: string; connection_id: string; query: Record<string, unknown> };
+export interface QueryIssue { code: string; message: string; severity: string; path: string; node_id: string | null; }
+export interface Complexity { score: number; level: string; metrics: Record<string, number>; }
+export interface ValidationResult { valid: boolean; errors: QueryIssue[]; warnings: QueryIssue[]; capabilities_required: string[]; referenced_entities: string[]; referenced_fields: string[]; referenced_relationships: string[]; parameters: string[]; complexity: Complexity; normalized_query: QueryDocument; fingerprint: string; }
+export interface SavedQuery { id: string; name: string; description: string | null; connection_id: string; owner_user_id: string; document: QueryDocument; schema_version: string; status: string; validation_status: string; validation_errors: QueryIssue[]; validation_warnings: QueryIssue[]; fingerprint: string | null; complexity: Complexity | null; revision: number; last_validated_at: string | null; created_at: string; updated_at: string; }
+export interface SavedQueryList { items: SavedQuery[]; total: number; page: number; page_size: number; }

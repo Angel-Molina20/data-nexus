@@ -16,7 +16,7 @@ export const navigationItems: readonly NavigationItem[] = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Conexiones", path: "/connections", icon: Database, permission: "connections.read" },
   { label: "Explorador de esquemas", path: "/schema", icon: TableProperties, permission: "schemas.read" },
-  { label: "Consultas", path: "/queries", icon: SearchCode },
+  { label: "Consultas", path: "/queries", icon: SearchCode, permission: "queries.read" },
   { label: "Reportes", path: "/reports", icon: FileBarChart },
   { label: "Catálogo semántico", path: "/semantic-catalog", icon: BookOpenText, permission: "semantic_catalog.read" },
   { label: "Programaciones", path: "/schedules", icon: CalendarClock },
@@ -25,6 +25,9 @@ export const navigationItems: readonly NavigationItem[] = [
 ];
 
 export function getPageTitle(pathname: string): string {
+  if (pathname === "/queries/new") return "Nueva consulta";
+  if (/^\/queries\/[^/]+\/edit-json$/.test(pathname)) return "Editor JSON";
+  if (/^\/queries\/[^/]+$/.test(pathname)) return "Detalle de consulta";
   if (pathname === "/account/change-password") return "Cambiar contraseña";
   if (pathname === "/settings/roles") return "Roles y permisos";
   if (pathname === "/connections/new") return "Nueva conexión";

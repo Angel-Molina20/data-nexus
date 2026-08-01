@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.auth import AuthContext, AuthorizationService, SessionPrincipal, SessionService
 from app.application.connections import ConnectionContext
+from app.application.queries import QueryContext
 from app.application.relationships import RelationshipContext
 from app.application.schema import SchemaContext
 from app.core.config import Settings, get_settings
@@ -20,6 +21,7 @@ from app.infrastructure.network.policy import DatabaseHostPolicy
 from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.auth import AuthRepository
 from app.infrastructure.repositories.connections import DatabaseConnectionRepository
+from app.infrastructure.repositories.queries import SavedQueryRepository
 from app.infrastructure.repositories.schema import SchemaRepository
 from app.infrastructure.repositories.semantic import SemanticCatalogRepository
 from app.infrastructure.security.encryption import get_credential_encryption
@@ -201,3 +203,18 @@ def get_relationship_context(
 
 
 RelationshipContextDependency = Annotated[RelationshipContext, Depends(get_relationship_context)]
+
+
+def get_query_context(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> QueryContext:
+    return QueryContext(
+        session=session,
+        repository=SavedQueryRepository(session),
+        audit=AuditRepository(session),
+        settings=settings,
+    )
+
+
+QueryContextDependency = Annotated[QueryContext, Depends(get_query_context)]

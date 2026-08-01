@@ -87,6 +87,18 @@ class Settings(BaseSettings):
     BOOTSTRAP_ADMIN_EMAIL: str | None = None
     BOOTSTRAP_ADMIN_NAME: str | None = None
     BOOTSTRAP_ADMIN_PASSWORD: str | None = None
+    QUERY_MAX_TOTAL_NODES: int = Field(default=2000, ge=10, le=100000)
+    QUERY_MAX_EXPRESSION_DEPTH: int = Field(default=20, ge=1, le=100)
+    QUERY_MAX_PREDICATE_DEPTH: int = Field(default=20, ge=1, le=100)
+    QUERY_MAX_SUBQUERY_DEPTH: int = Field(default=5, ge=0, le=20)
+    QUERY_MAX_JOINS: int = Field(default=50, ge=0, le=1000)
+    QUERY_MAX_SELECT_ITEMS: int = Field(default=200, ge=1, le=5000)
+    QUERY_MAX_PARAMETERS: int = Field(default=100, ge=0, le=1000)
+    QUERY_MAX_UNIONS: int = Field(default=20, ge=0, le=100)
+    QUERY_MAX_IN_VALUES: int = Field(default=1000, ge=1, le=10000)
+    QUERY_MAX_DECLARED_LIMIT: int = Field(default=100000, ge=1, le=10000000)
+    QUERY_DEFAULT_PREVIEW_LIMIT: int = Field(default=100, ge=1, le=10000)
+    QUERY_MAX_DOCUMENT_SIZE_KB: int = Field(default=512, ge=16, le=4096)
 
     @model_validator(mode="after")
     def secure_production_session(self) -> "Settings":
