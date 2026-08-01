@@ -144,6 +144,7 @@ class MySQLQueryCompiler(QueryCompiler):
         self.scope_logical[scope_id] = body.scope_id
         self._validate_grouping(body)
         source_sql = self._source(body.source, scope_id)
+        joined_sources = {join.join_id: self._source(join.source, scope_id) for join in body.joins}
         select_sql = ",\n    ".join(
             self._select(item.expression, item.alias, scope_id, outer_scopes)
             for item in body.select
@@ -153,7 +154,7 @@ class MySQLQueryCompiler(QueryCompiler):
             f"FROM {source_sql}",
         ]
         for join in body.joins:
-            clauses.append(self._join(join, scope_id, outer_scopes))
+            clauses.append(self._join(join, joined_sources[join.join_id], scope_id, outer_scopes))
         if body.where is not None:
             clauses.append(f"WHERE {self._predicate(body.where, scope_id, outer_scopes)}")
         if body.group_by:
@@ -392,10 +393,15 @@ class MySQLQueryCompiler(QueryCompiler):
             return f"({self._expression(predicate.expression, scope_id, outer_scopes)})"
         raise PublicError("QUERY_COMPILATION_FAILED", "Predicado no soportado.", 422)
 
-    def _join(self, join: JoinNode, scope_id: str, outer_scopes: dict[str, str]) -> str:
+    def _join(
+        self,
+        join: JoinNode,
+        joined_sql: str,
+        scope_id: str,
+        outer_scopes: dict[str, str],
+    ) -> str:
         self._require_capability("supports_joins")
         joined_entity = join.source.entity_id
-        joined_sql = self._source(join.source, scope_id)
         join_keyword = {
             "inner": "INNER JOIN",
             "left": "LEFT JOIN",
