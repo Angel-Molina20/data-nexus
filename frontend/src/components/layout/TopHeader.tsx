@@ -42,7 +42,7 @@ export function TopHeader({
             <p className="text-xs text-slate-500">{auth.user?.roles.join(", ")}</p>
           </div>
           <Link aria-label="Cambiar contraseña" className="rounded-lg border p-2 text-slate-600" to="/account/change-password"><UserRound className="size-4" /></Link>
-          <button aria-label="Cerrar sesión" className="rounded-lg border p-2 text-slate-600" onClick={() => { void auth.logout().then(() => navigate("/login")); }}><LogOut className="size-4" /></button>
+          <button aria-label="Cerrar sesión" className="rounded-lg border p-2 text-slate-600" onClick={() => { void auth.logout().then(() => { void navigate("/login", { replace: true }); }); }}><LogOut className="size-4" /></button>
         </div>
       </div>
     </header>
