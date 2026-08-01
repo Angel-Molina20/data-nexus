@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import BeforeValidator, Field, PostgresDsn, RedisDsn
+from pydantic import BeforeValidator, Field, PostgresDsn, RedisDsn, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -65,6 +65,34 @@ class Settings(BaseSettings):
     ENABLE_POLYMORPHIC_VALUE_DISCOVERY: bool = False
     POLYMORPHIC_VALUE_DISCOVERY_LIMIT: int = Field(default=100, ge=1, le=1000)
     POLYMORPHIC_VALUE_DISCOVERY_TIMEOUT_SECONDS: int = Field(default=10, ge=1, le=60)
+    PASSWORD_MIN_LENGTH: int = Field(default=12, ge=8, le=128)
+    PASSWORD_REQUIRE_UPPERCASE: bool = True
+    PASSWORD_REQUIRE_LOWERCASE: bool = True
+    PASSWORD_REQUIRE_NUMBER: bool = True
+    PASSWORD_REQUIRE_SPECIAL: bool = True
+    SESSION_IDLE_TIMEOUT_MINUTES: int = Field(default=60, ge=5, le=1440)
+    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = Field(default=12, ge=1, le=720)
+    SESSION_COOKIE_NAME: str = "datanexus_session"
+    SESSION_COOKIE_SECURE: bool = False
+    SESSION_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
+    SESSION_COOKIE_DOMAIN: str | None = None
+    MAX_FAILED_LOGIN_ATTEMPTS: int = Field(default=5, ge=1, le=100)
+    ACCOUNT_LOCK_MINUTES: int = Field(default=15, ge=1, le=1440)
+    LOGIN_RATE_LIMIT_PER_MINUTE: int = Field(default=5, ge=1, le=1000)
+    LOGIN_ACCOUNT_RATE_LIMIT_PER_15_MINUTES: int = Field(default=10, ge=1, le=1000)
+    CSRF_COOKIE_NAME: str = "datanexus_csrf"
+    CSRF_HEADER_NAME: str = "X-CSRF-Token"
+    ALLOWED_ORIGINS: CorsOrigins = ["http://localhost:5173"]
+    ENABLE_BOOTSTRAP_ADMIN: bool = False
+    BOOTSTRAP_ADMIN_EMAIL: str | None = None
+    BOOTSTRAP_ADMIN_NAME: str | None = None
+    BOOTSTRAP_ADMIN_PASSWORD: str | None = None
+
+    @model_validator(mode="after")
+    def secure_production_session(self) -> "Settings":
+        if self.APP_ENV == "production" and not self.SESSION_COOKIE_SECURE:
+            raise ValueError("SESSION_COOKIE_SECURE debe activarse en producción")
+        return self
 
     @property
     def database_url(self) -> str:

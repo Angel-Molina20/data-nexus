@@ -18,6 +18,11 @@ class AuditRepository:
         connection_id: uuid.UUID | None = None,
         error_code: str | None = None,
         actor: str = "system",
+        actor_user_id: uuid.UUID | None = None,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> None:
         self.session.add(
             AuditLog(
@@ -27,6 +32,11 @@ class AuditRepository:
                 connection_id=connection_id,
                 error_code=error_code,
                 actor=actor,
+                actor_user_id=actor_user_id,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                ip_address=ip_address,
+                user_agent=user_agent[:255] if user_agent else None,
             )
         )
         await self.session.flush()

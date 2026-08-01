@@ -4,4 +4,5 @@ export interface NavigationItem {
   label: string;
   path: string;
   icon: LucideIcon;
+  permission?: string;
 }

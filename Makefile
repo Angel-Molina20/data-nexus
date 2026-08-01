@@ -1,6 +1,6 @@
 COMPOSE := docker compose
 
-.PHONY: up down build logs ps clean backend-test backend-lint backend-typecheck frontend-lint frontend-typecheck frontend-test frontend-build migrate
+.PHONY: up down build logs ps clean backend-test backend-lint backend-typecheck frontend-lint frontend-typecheck frontend-test frontend-build migrate seed-rbac create-admin
 
 up:
 	$(COMPOSE) up -d --build
@@ -43,3 +43,9 @@ frontend-build:
 
 migrate:
 	$(COMPOSE) exec backend alembic upgrade head
+
+seed-rbac:
+	$(COMPOSE) exec backend python -m app.cli seed-rbac
+
+create-admin:
+	$(COMPOSE) exec backend python -m app.cli create-admin

@@ -1,4 +1,13 @@
 from app.db.models.audit_log import AuditLog
+from app.db.models.auth import (
+    ConnectionAccess,
+    Permission,
+    Role,
+    RolePermission,
+    User,
+    UserRole,
+    UserSession,
+)
 from app.db.models.database_connection import DatabaseConnection
 from app.db.models.schema import (
     SchemaChange,
@@ -21,6 +30,13 @@ from app.db.models.semantic import (
 
 __all__ = [
     "AuditLog",
+    "ConnectionAccess",
+    "Permission",
+    "Role",
+    "RolePermission",
+    "User",
+    "UserRole",
+    "UserSession",
     "DatabaseConnection",
     "SchemaChange",
     "SchemaEntity",

@@ -1,9 +1,15 @@
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.api.dependencies import SchemaContextDependency
+from app.api.dependencies import (
+    SchemaContextDependency,
+    require_connection_manager,
+    require_connection_viewer,
+    require_csrf,
+    require_permission,
+)
 from app.api.schemas.schema import (
     ChangeListResponse,
     EntityDetailResponse,
@@ -27,10 +33,22 @@ from app.application.schema import (
 router = APIRouter(
     prefix="/connections/{connection_id}/schema",
     tags=["schema"],
+    dependencies=[
+        Depends(require_connection_viewer),
+        Depends(require_permission("schemas.read")),
+        Depends(require_csrf),
+    ],
 )
 
 
-@router.post("/synchronize", response_model=SynchronizationResponse)
+@router.post(
+    "/synchronize",
+    response_model=SynchronizationResponse,
+    dependencies=[
+        Depends(require_permission("schemas.synchronize")),
+        Depends(require_connection_manager),
+    ],
+)
 async def synchronize_schema(
     connection_id: uuid.UUID, context: SchemaContextDependency
 ) -> SynchronizationResponse:

@@ -3,11 +3,9 @@ import {
   FileBarChart,
   SearchCode,
   Settings,
-  Users,
 } from "lucide-react";
 import { createBrowserRouter } from "react-router";
 
-import { App } from "../App";
 import { ConnectionsPage } from "../pages/ConnectionsPage";
 import { ConnectionDetailPage } from "../pages/ConnectionDetailPage";
 import { EditConnectionPage } from "../pages/EditConnectionPage";
@@ -24,11 +22,17 @@ import { SchemaIndexPage } from "../pages/SchemaIndexPage";
 import { SchemaSynchronizationsPage } from "../pages/SchemaSynchronizationsPage";
 import { SemanticCatalogIndexPage } from "../pages/SemanticCatalogIndexPage";
 import { SemanticCatalogPage } from "../pages/SemanticCatalogPage";
+import { ProtectedRoute, PermissionGuard } from "../features/auth/guards";
+import { ChangePasswordPage } from "../pages/ChangePasswordPage";
+import { LoginPage } from "../pages/LoginPage";
+import { RolesPage } from "../pages/RolesPage";
+import { UsersPage } from "../pages/UsersPage";
 
 export const router = createBrowserRouter([
+  { path: "/login", Component: LoginPage },
   {
     path: "/",
-    Component: App,
+    Component: ProtectedRoute,
     children: [
       { index: true, Component: HomePage },
       { path: "connections", Component: ConnectionsPage },
@@ -81,18 +85,9 @@ export const router = createBrowserRouter([
           />
         ),
       },
-      {
-        path: "users",
-        element: (
-          <ModulePage
-            title="Usuarios"
-            description="Gestiona el acceso de los equipos a DataNexus."
-            detail="La autenticación, los usuarios y los permisos se incorporarán más adelante."
-            icon={Users}
-            phase="Próximamente"
-          />
-        ),
-      },
+      { path: "users", element: <PermissionGuard permission="users.read"><UsersPage /></PermissionGuard> },
+      { path: "settings/roles", element: <PermissionGuard permission="roles.read"><RolesPage /></PermissionGuard> },
+      { path: "account/change-password", Component: ChangePasswordPage },
       {
         path: "settings",
         element: (
