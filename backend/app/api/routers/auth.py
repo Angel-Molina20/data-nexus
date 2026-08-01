@@ -98,12 +98,11 @@ async def csrf(
 @router.post(
     "/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_csrf)]
 )
-async def logout(
-    response: Response, context: AuthContextDependency, principal: CurrentPrincipal
-) -> Response:
+async def logout(context: AuthContextDependency, principal: CurrentPrincipal) -> Response:
     await SessionService(context).logout(principal)
+    response = Response(status_code=204)
     clear_auth_cookies(response, context)
-    return Response(status_code=204, headers=response.headers)
+    return response
 
 
 @router.post(
@@ -123,13 +122,12 @@ async def change_password(
 @router.post(
     "/logout-all", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_csrf)]
 )
-async def logout_all(
-    response: Response, context: AuthContextDependency, principal: CurrentPrincipal
-) -> Response:
+async def logout_all(context: AuthContextDependency, principal: CurrentPrincipal) -> Response:
     await context.auth.revoke_sessions(principal.user.id, "logout_all")
     await context.session.commit()
+    response = Response(status_code=204)
     clear_auth_cookies(response, context)
-    return Response(status_code=204, headers=response.headers)
+    return response
 
 
 @router.get("/sessions", response_model=list[SessionResponse])
