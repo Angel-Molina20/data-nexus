@@ -323,8 +323,49 @@ POST /api/v1/queries/{uuid}/archive
 
 Los límites `QUERY_MAX_*` controlan tamaño, nodos, profundidad, joins, selecciones, parámetros,
 unions, valores IN y límite declarado. `/queries/new` crea plantillas AST; `/queries/{id}` muestra
-la estructura y `/queries/{id}/edit-json` ofrece el editor técnico ligero. Esta fase no compila,
-previsualiza ni ejecuta SQL, no acepta nombres físicos arbitrarios y no toca la fuente MySQL.
+la estructura y `/queries/{id}/edit-json` ofrece el editor técnico ligero.
+
+## Compilador SQL seguro para MySQL
+
+La Fase 7 incorpora un registro extensible de compiladores y el primer dialecto para MySQL. El
+compilador recibe exclusivamente el AST universal validado, crea un snapshot del catálogo guardado
+en PostgreSQL y resuelve desde allí esquemas, tablas, columnas y relaciones. No abre conexiones a
+MySQL durante esta operación.
+
+El SQL generado contiene identificadores citados y placeholders `:p_N`. Literales, parámetros
+declarados, límites y discriminadores polimórficos permanecen separados del texto SQL. Las
+relaciones polimórficas siempre incluyen la comparación del identificador y la condición del
+discriminador. No se aceptan nombres físicos, funciones, operadores ni fragmentos SQL libres.
+
+El dialecto soporta SELECT, DISTINCT, expresiones, funciones universales controladas, agregaciones,
+CASE, CAST, filtros, GROUP BY, HAVING, ORDER BY, joins físicos/lógicos/polimórficos, subconsultas,
+correlación, EXISTS, IN, UNION, LIMIT y OFFSET. MySQL 5.6 y MySQL 8 utilizan el perfil de capacidades
+detectado; no se generan CTE, funciones de ventana ni JSON_TABLE. Percona usa el perfil MySQL y
+MariaDB genera una advertencia de compatibilidad limitada.
+
+```text
+POST /api/v1/query-compiler/compile
+GET  /api/v1/query-compiler/capabilities/{connection_id}
+POST /api/v1/queries/{query_id}/compile
+GET  /api/v1/queries/{query_id}/compilations
+GET  /api/v1/queries/{query_id}/compilations/{compilation_id}
+```
+
+Las compilaciones de borradores pueden persistir el template parametrizado, fingerprints,
+capacidades y metadata, pero nunca valores reales de parámetros. Requieren `queries.compile` y
+acceso `analyst` o superior. `/queries/:id/compile` muestra una vista previa de solo lectura; no
+existe botón ni endpoint de ejecución.
+
+```text
+QUERY_COMPILATION_TIMEOUT_SECONDS=10
+QUERY_MAX_GENERATED_SQL_KB=512
+QUERY_MAX_BOUND_PARAMETERS=5000
+QUERY_COMPILER_PRETTY_SQL=true
+QUERY_COMPILER_STORE_RESULTS=true
+```
+
+Esta fase no ejecuta consultas, no conecta con MySQL para compilar y no permite editar el SQL
+producido. La ejecución, resultados y parámetros reales corresponden a una fase posterior.
 
 ```bash
 make build       # construir imágenes

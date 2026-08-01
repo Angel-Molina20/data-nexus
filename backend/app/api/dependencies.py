@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.auth import AuthContext, AuthorizationService, SessionPrincipal, SessionService
+from app.application.compilations import CompilerContext, create_compiler_registry
 from app.application.connections import ConnectionContext
 from app.application.queries import QueryContext
 from app.application.relationships import RelationshipContext
@@ -20,6 +21,7 @@ from app.infrastructure.adapters.registry import AdapterRegistry
 from app.infrastructure.network.policy import DatabaseHostPolicy
 from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.auth import AuthRepository
+from app.infrastructure.repositories.compilations import CompilationRepository
 from app.infrastructure.repositories.connections import DatabaseConnectionRepository
 from app.infrastructure.repositories.queries import SavedQueryRepository
 from app.infrastructure.repositories.schema import SchemaRepository
@@ -218,3 +220,26 @@ def get_query_context(
 
 
 QueryContextDependency = Annotated[QueryContext, Depends(get_query_context)]
+
+
+def get_compiler_context(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> CompilerContext:
+    query_context = QueryContext(
+        session=session,
+        repository=SavedQueryRepository(session),
+        audit=AuditRepository(session),
+        settings=settings,
+    )
+    return CompilerContext(
+        session=session,
+        compilations=CompilationRepository(session),
+        queries=query_context,
+        audit=query_context.audit,
+        settings=settings,
+        registry=create_compiler_registry(),
+    )
+
+
+CompilerContextDependency = Annotated[CompilerContext, Depends(get_compiler_context)]
