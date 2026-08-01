@@ -21,9 +21,7 @@ def mysql_payload(prefix: str, *, password: str | None = None) -> dict[str, obje
 
 @pytest.mark.integration
 @pytest.mark.parametrize(("prefix", "major"), [("MYSQL56", 5), ("MYSQL8", 8)])
-async def test_connection_lifecycle(
-    async_client: AsyncClient, prefix: str, major: int
-) -> None:
+async def test_connection_lifecycle(async_client: AsyncClient, prefix: str, major: int) -> None:
     payload = mysql_payload(prefix)
     tested = await async_client.post("/api/v1/connections/test", json=payload)
     assert tested.status_code == 200
@@ -35,9 +33,7 @@ async def test_connection_lifecycle(
     connection_id = created.json()["id"]
     assert "password" not in created.text
 
-    listed = await async_client.get(
-        "/api/v1/connections", params={"search": str(payload["name"])}
-    )
+    listed = await async_client.get("/api/v1/connections", params={"search": str(payload["name"])})
     assert listed.status_code == 200
     assert listed.json()["total"] == 1
 

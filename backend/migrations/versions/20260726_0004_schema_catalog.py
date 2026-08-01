@@ -38,28 +38,30 @@ def upgrade() -> None:
         *[
             sa.Column(name, sa.Integer(), nullable=False, server_default="0")
             for name in (
-                "entities_discovered", "fields_discovered",
-                "relationships_discovered", "indexes_discovered",
-                "entities_added", "entities_updated", "entities_removed",
-                "fields_added", "fields_updated", "fields_removed",
+                "entities_discovered",
+                "fields_discovered",
+                "relationships_discovered",
+                "indexes_discovered",
+                "entities_added",
+                "entities_updated",
+                "entities_removed",
+                "fields_added",
+                "fields_updated",
+                "fields_removed",
             )
         ],
         sa.Column("warnings_json", sa.JSON(), nullable=False, server_default="[]"),
         sa.Column("error_code", sa.String(64)),
         sa.Column("error_message", sa.Text()),
         sa.Column("created_at", TIMESTAMP, server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["connection_id"], ["database_connections.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["connection_id"], ["database_connections.id"], ondelete="CASCADE"),
     )
     op.create_index(
         "ix_schema_synchronizations_connection_id",
         "schema_synchronizations",
         ["connection_id"],
     )
-    op.create_index(
-        "ix_schema_synchronizations_status", "schema_synchronizations", ["status"]
-    )
+    op.create_index("ix_schema_synchronizations_status", "schema_synchronizations", ["status"])
     op.create_table(
         "schema_entities",
         sa.Column("id", sa.Uuid(), primary_key=True),
@@ -75,9 +77,7 @@ def upgrade() -> None:
         sa.Column("collation", sa.String(128), quote=True),
         sa.Column("is_active", sa.Boolean(), nullable=False),
         *_timestamps(),
-        sa.ForeignKeyConstraint(
-            ["connection_id"], ["database_connections.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["connection_id"], ["database_connections.id"], ondelete="CASCADE"),
         sa.UniqueConstraint(
             "connection_id", "schema_name", "physical_name", name="uq_schema_entity_key"
         ),
@@ -140,16 +140,10 @@ def upgrade() -> None:
         sa.Column("prefix_length", sa.Integer()),
         sa.ForeignKeyConstraint(["index_id"], ["schema_indexes.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["field_id"], ["schema_fields.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint(
-            "index_id", "sequence", name="uq_schema_index_field_sequence"
-        ),
+        sa.UniqueConstraint("index_id", "sequence", name="uq_schema_index_field_sequence"),
     )
-    op.create_index(
-        "ix_schema_index_fields_index_id", "schema_index_fields", ["index_id"]
-    )
-    op.create_index(
-        "ix_schema_index_fields_field_id", "schema_index_fields", ["field_id"]
-    )
+    op.create_index("ix_schema_index_fields_index_id", "schema_index_fields", ["index_id"])
+    op.create_index("ix_schema_index_fields_field_id", "schema_index_fields", ["field_id"])
     op.create_table(
         "schema_physical_relationships",
         sa.Column("id", sa.Uuid(), primary_key=True),
@@ -161,17 +155,14 @@ def upgrade() -> None:
         sa.Column("delete_rule", sa.String(32)),
         sa.Column("is_active", sa.Boolean(), nullable=False),
         *_timestamps(),
-        sa.ForeignKeyConstraint(
-            ["connection_id"], ["database_connections.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["source_entity_id"], ["schema_entities.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["target_entity_id"], ["schema_entities.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["connection_id"], ["database_connections.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["source_entity_id"], ["schema_entities.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["target_entity_id"], ["schema_entities.id"], ondelete="CASCADE"),
         sa.UniqueConstraint(
-            "connection_id", "constraint_name", "source_entity_id", "target_entity_id",
+            "connection_id",
+            "constraint_name",
+            "source_entity_id",
+            "target_entity_id",
             name="uq_schema_relationship_key",
         ),
     )
@@ -191,14 +182,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["relationship_id"], ["schema_physical_relationships.id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(
-            ["source_field_id"], ["schema_fields.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["target_field_id"], ["schema_fields.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["source_field_id"], ["schema_fields.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["target_field_id"], ["schema_fields.id"], ondelete="CASCADE"),
         sa.UniqueConstraint(
-            "relationship_id", "sequence",
+            "relationship_id",
+            "sequence",
             name="uq_schema_relationship_field_sequence",
         ),
     )
@@ -225,9 +213,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_schema_changes_synchronization_id", "schema_changes", ["synchronization_id"]
     )
-    op.create_index(
-        "ix_schema_changes_type", "schema_changes", ["change_type", "object_type"]
-    )
+    op.create_index("ix_schema_changes_type", "schema_changes", ["change_type", "object_type"])
 
 
 def downgrade() -> None:

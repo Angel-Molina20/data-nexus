@@ -42,13 +42,9 @@ class SchemaRepository:
 
     async def unlock(self, connection_id: uuid.UUID) -> None:
         key = connection_id.int % (2**63 - 1)
-        await self.session.execute(
-            text("SELECT pg_advisory_unlock(:lock_key)"), {"lock_key": key}
-        )
+        await self.session.execute(text("SELECT pg_advisory_unlock(:lock_key)"), {"lock_key": key})
 
-    async def create_synchronization(
-        self, connection_id: uuid.UUID
-    ) -> SchemaSynchronization:
+    async def create_synchronization(self, connection_id: uuid.UUID) -> SchemaSynchronization:
         synchronization = SchemaSynchronization(
             connection_id=connection_id,
             status="running",
@@ -236,13 +232,9 @@ class SchemaRepository:
             ).all()
             for source_id, target_id in relationship_rows:
                 if source_id in entity_ids:
-                    relationship_counts[source_id] = (
-                        relationship_counts.get(source_id, 0) + 1
-                    )
+                    relationship_counts[source_id] = relationship_counts.get(source_id, 0) + 1
                 if target_id in entity_ids and target_id != source_id:
-                    relationship_counts[target_id] = (
-                        relationship_counts.get(target_id, 0) + 1
-                    )
+                    relationship_counts[target_id] = relationship_counts.get(target_id, 0) + 1
 
         result = []
         for entity in items:
@@ -325,9 +317,7 @@ class SchemaRepository:
             item.id: item.physical_name
             for item in (
                 await self.session.scalars(
-                    select(SchemaEntity).where(
-                        SchemaEntity.connection_id == connection_id
-                    )
+                    select(SchemaEntity).where(SchemaEntity.connection_id == connection_id)
                 )
             ).all()
         }
@@ -352,9 +342,7 @@ class SchemaRepository:
                 for item in (
                     await self.session.scalars(
                         select(SchemaField).where(
-                            SchemaField.id.in_(
-                                [row[0].target_field_id for row in rows]
-                            )
+                            SchemaField.id.in_([row[0].target_field_id for row in rows])
                         )
                     )
                 ).all()
@@ -365,8 +353,7 @@ class SchemaRepository:
                     "source_entity": entities[model.source_entity_id],
                     "target_entity": entities[model.target_entity_id],
                     "fields": [
-                        (row[0], row[1], target_names[row[0].target_field_id])
-                        for row in rows
+                        (row[0], row[1], target_names[row[0].target_field_id]) for row in rows
                     ],
                 }
             )
@@ -429,15 +416,11 @@ class SchemaRepository:
         entities = list(
             (
                 await self.session.scalars(
-                    select(SchemaEntity).where(
-                        SchemaEntity.connection_id == connection_id
-                    )
+                    select(SchemaEntity).where(SchemaEntity.connection_id == connection_id)
                 )
             ).all()
         )
-        entity_by_key = {
-            (item.schema_name, item.physical_name): item for item in entities
-        }
+        entity_by_key = {(item.schema_name, item.physical_name): item for item in entities}
         seen_entities: set[uuid.UUID] = set()
         inspected_by_entity: dict[uuid.UUID, InspectedEntity] = {}
         for source in inspected.entities:
@@ -464,21 +447,33 @@ class SchemaRepository:
                 await self.session.flush()
                 counters["entities_added"] += 1
                 self._change(
-                    synchronization.id, ChangeType.ADDED, ObjectType.ENTITY,
-                    model.id, source.physical_name, None, current
+                    synchronization.id,
+                    ChangeType.ADDED,
+                    ObjectType.ENTITY,
+                    model.id,
+                    source.physical_name,
+                    None,
+                    current,
                 )
             else:
                 previous = _entity_model_snapshot(model)
                 change = (
                     ChangeType.REACTIVATED
                     if not model.is_active
-                    else ChangeType.UPDATED if previous != current else None
+                    else ChangeType.UPDATED
+                    if previous != current
+                    else None
                 )
                 if change is not None:
                     counters["entities_updated"] += 1
                     self._change(
-                        synchronization.id, change, ObjectType.ENTITY,
-                        model.id, source.physical_name, previous, current
+                        synchronization.id,
+                        change,
+                        ObjectType.ENTITY,
+                        model.id,
+                        source.physical_name,
+                        previous,
+                        current,
                     )
                 _assign_entity(model, source)
                 model.is_active = True
@@ -490,8 +485,13 @@ class SchemaRepository:
                 model.is_active = False
                 counters["entities_removed"] += 1
                 self._change(
-                    synchronization.id, ChangeType.REMOVED, ObjectType.ENTITY,
-                    model.id, model.physical_name, _entity_model_snapshot(model), None
+                    synchronization.id,
+                    ChangeType.REMOVED,
+                    ObjectType.ENTITY,
+                    model.id,
+                    model.physical_name,
+                    _entity_model_snapshot(model),
+                    None,
                 )
                 removed_fields = list(
                     (
@@ -566,25 +566,33 @@ class SchemaRepository:
                     await self.session.flush()
                     counters["fields_added"] += 1
                     self._change(
-                        synchronization.id, ChangeType.ADDED, ObjectType.FIELD,
+                        synchronization.id,
+                        ChangeType.ADDED,
+                        ObjectType.FIELD,
                         field_model.id,
                         f"{source_entity.physical_name}.{source_field.physical_name}",
-                        None, current
+                        None,
+                        current,
                     )
                 else:
                     previous = _field_model_snapshot(field_model)
                     field_change: ChangeType | None = (
                         ChangeType.REACTIVATED
                         if not field_model.is_active
-                        else ChangeType.UPDATED if previous != current else None
+                        else ChangeType.UPDATED
+                        if previous != current
+                        else None
                     )
                     if field_change is not None:
                         counters["fields_updated"] += 1
                         self._change(
-                            synchronization.id, field_change, ObjectType.FIELD,
+                            synchronization.id,
+                            field_change,
+                            ObjectType.FIELD,
                             field_model.id,
                             f"{source_entity.physical_name}.{source_field.physical_name}",
-                            previous, current
+                            previous,
+                            current,
                         )
                     for name, value in current.items():
                         setattr(field_model, name, value)
@@ -596,10 +604,13 @@ class SchemaRepository:
                     existing_field.is_active = False
                     counters["fields_removed"] += 1
                     self._change(
-                        synchronization.id, ChangeType.REMOVED, ObjectType.FIELD,
+                        synchronization.id,
+                        ChangeType.REMOVED,
+                        ObjectType.FIELD,
                         existing_field.id,
                         f"{source_entity.physical_name}.{existing_field.physical_name}",
-                        _field_model_snapshot(existing_field), None
+                        _field_model_snapshot(existing_field),
+                        None,
                     )
             await self.session.flush()
             fields_by_entity[entity_id] = {
@@ -611,9 +622,7 @@ class SchemaRepository:
                 ).all()
             }
 
-        await self._apply_indexes(
-            synchronization.id, inspected_by_entity, fields_by_entity, now
-        )
+        await self._apply_indexes(synchronization.id, inspected_by_entity, fields_by_entity, now)
         await self._apply_relationships(
             connection_id, synchronization.id, inspected, fields_by_entity, now
         )
@@ -660,7 +669,9 @@ class SchemaRepository:
                     change = (
                         ChangeType.REACTIVATED
                         if not model.is_active
-                        else ChangeType.UPDATED if previous != current else None
+                        else ChangeType.UPDATED
+                        if previous != current
+                        else None
                     )
                     model.index_type = source.index_type
                     model.is_unique = source.is_unique
@@ -668,9 +679,7 @@ class SchemaRepository:
                     model.is_active = True
                     model.last_seen_at = now
                 await self.session.execute(
-                    delete(SchemaIndexField).where(
-                        SchemaIndexField.index_id == model.id
-                    )
+                    delete(SchemaIndexField).where(SchemaIndexField.index_id == model.id)
                 )
                 for item in source.fields:
                     self.session.add(
@@ -688,18 +697,26 @@ class SchemaRepository:
                     )
                 if change is not None:
                     self._change(
-                        synchronization_id, change, ObjectType.INDEX, model.id,
+                        synchronization_id,
+                        change,
+                        ObjectType.INDEX,
+                        model.id,
                         f"{source_entity.physical_name}.{source.physical_name}",
-                        previous, current
+                        previous,
+                        current,
                     )
                 seen.add(model.id)
             for model in existing:
                 if model.id not in seen and model.is_active:
                     model.is_active = False
                     self._change(
-                        synchronization_id, ChangeType.REMOVED, ObjectType.INDEX,
-                        model.id, f"{source_entity.physical_name}.{model.physical_name}",
-                        await self._index_model_snapshot(model), None
+                        synchronization_id,
+                        ChangeType.REMOVED,
+                        ObjectType.INDEX,
+                        model.id,
+                        f"{source_entity.physical_name}.{model.physical_name}",
+                        await self._index_model_snapshot(model),
+                        None,
                     )
 
     async def _apply_relationships(
@@ -713,9 +730,7 @@ class SchemaRepository:
         all_entities = list(
             (
                 await self.session.scalars(
-                    select(SchemaEntity).where(
-                        SchemaEntity.connection_id == connection_id
-                    )
+                    select(SchemaEntity).where(SchemaEntity.connection_id == connection_id)
                 )
             ).all()
         )
@@ -762,7 +777,9 @@ class SchemaRepository:
                 change = (
                     ChangeType.REACTIVATED
                     if not model.is_active
-                    else ChangeType.UPDATED if previous != current else None
+                    else ChangeType.UPDATED
+                    if previous != current
+                    else None
                 )
                 model.update_rule = source.update_rule
                 model.delete_rule = source.delete_rule
@@ -784,17 +801,26 @@ class SchemaRepository:
                 )
             if change is not None:
                 self._change(
-                    synchronization_id, change, ObjectType.RELATIONSHIP, model.id,
-                    source.constraint_name, previous, current
+                    synchronization_id,
+                    change,
+                    ObjectType.RELATIONSHIP,
+                    model.id,
+                    source.constraint_name,
+                    previous,
+                    current,
                 )
             seen.add(model.id)
         for model in existing:
             if model.id not in seen and model.is_active:
                 model.is_active = False
                 self._change(
-                    synchronization_id, ChangeType.REMOVED, ObjectType.RELATIONSHIP,
-                    model.id, model.constraint_name,
-                    await self._relationship_model_snapshot(model), None
+                    synchronization_id,
+                    ChangeType.REMOVED,
+                    ObjectType.RELATIONSHIP,
+                    model.id,
+                    model.constraint_name,
+                    await self._relationship_model_snapshot(model),
+                    None,
                 )
 
     def _change(
@@ -833,9 +859,7 @@ class SchemaRepository:
         names = {
             item.id: item.physical_name
             for item in (
-                await self.session.scalars(
-                    select(SchemaField).where(SchemaField.id.in_(field_ids))
-                )
+                await self.session.scalars(select(SchemaField).where(SchemaField.id.in_(field_ids)))
             ).all()
         }
         return {
@@ -866,16 +890,12 @@ class SchemaRepository:
             ).all()
         )
         field_ids = {
-            value
-            for item in items
-            for value in (item.source_field_id, item.target_field_id)
+            value for item in items for value in (item.source_field_id, item.target_field_id)
         }
         names = {
             item.id: item.physical_name
             for item in (
-                await self.session.scalars(
-                    select(SchemaField).where(SchemaField.id.in_(field_ids))
-                )
+                await self.session.scalars(select(SchemaField).where(SchemaField.id.in_(field_ids)))
             ).all()
         }
         return {
@@ -918,11 +938,23 @@ def _field_snapshot(source: InspectedField) -> dict[str, Any]:
     return {
         name: getattr(source, name)
         for name in (
-            "ordinal_position", "native_data_type", "normalized_data_type",
-            "column_type", "is_nullable", "default_value", "is_primary_key",
-            "is_unique", "is_auto_increment", "character_maximum_length",
-            "numeric_precision", "numeric_scale", "datetime_precision",
-            "character_set", "collation", "comment", "extra",
+            "ordinal_position",
+            "native_data_type",
+            "normalized_data_type",
+            "column_type",
+            "is_nullable",
+            "default_value",
+            "is_primary_key",
+            "is_unique",
+            "is_auto_increment",
+            "character_maximum_length",
+            "numeric_precision",
+            "numeric_scale",
+            "datetime_precision",
+            "character_set",
+            "collation",
+            "comment",
+            "extra",
         )
     }
 
@@ -931,11 +963,23 @@ def _field_model_snapshot(model: SchemaField) -> dict[str, Any]:
     return {
         name: getattr(model, name)
         for name in (
-            "ordinal_position", "native_data_type", "normalized_data_type",
-            "column_type", "is_nullable", "default_value", "is_primary_key",
-            "is_unique", "is_auto_increment", "character_maximum_length",
-            "numeric_precision", "numeric_scale", "datetime_precision",
-            "character_set", "collation", "comment", "extra",
+            "ordinal_position",
+            "native_data_type",
+            "normalized_data_type",
+            "column_type",
+            "is_nullable",
+            "default_value",
+            "is_primary_key",
+            "is_unique",
+            "is_auto_increment",
+            "character_maximum_length",
+            "numeric_precision",
+            "numeric_scale",
+            "datetime_precision",
+            "character_set",
+            "collation",
+            "comment",
+            "extra",
         )
     }
 
@@ -956,8 +1000,5 @@ def _relationship_snapshot(source: InspectedRelationship) -> dict[str, Any]:
     return {
         "update_rule": source.update_rule,
         "delete_rule": source.delete_rule,
-        "fields": [
-            [item.source_field, item.target_field, item.sequence]
-            for item in source.fields
-        ],
+        "fields": [[item.source_field, item.target_field, item.sequence] for item in source.fields],
     }

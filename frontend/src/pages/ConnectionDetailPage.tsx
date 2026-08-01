@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, RefreshCw, TableProperties, Trash2 } from "lucide-react";
+import { BookOpenText, GitFork, Pencil, RefreshCw, TableProperties, Trash2 } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
@@ -25,7 +25,7 @@ export function ConnectionDetailPage() {
       <PageHeader
         title={connection.name}
         description={`${connection.host}:${String(connection.port)} · ${connection.database_name}`}
-        actions={<><Link className="btn-primary" to={`/connections/${id}/schema`}><TableProperties className="size-4" /> Explorar esquema</Link><button className="btn-secondary" disabled={retest.isPending} onClick={() => { retest.mutate(); }}><RefreshCw className="size-4" />{retest.isPending ? "Probando…" : "Probar"}</button><Link className="btn-secondary" to={`/connections/${id}/edit`}><Pencil className="size-4" /> Editar</Link><button className="btn-danger" disabled={remove.isPending} onClick={() => { if (window.confirm("¿Eliminar esta configuración local?")) remove.mutate(); }}><Trash2 className="size-4" /> Eliminar</button></>}
+        actions={<><Link className="btn-primary" to={`/connections/${id}/schema`}><TableProperties className="size-4" /> Explorar esquema</Link><Link className="btn-secondary" to={`/connections/${id}/relationships`}><GitFork className="size-4" /> Relaciones</Link><Link className="btn-secondary" to={`/connections/${id}/semantic-catalog`}><BookOpenText className="size-4" /> Semántica</Link><button className="btn-secondary" disabled={retest.isPending} onClick={() => { retest.mutate(); }}><RefreshCw className="size-4" />{retest.isPending ? "Probando…" : "Probar"}</button><Link className="btn-secondary" to={`/connections/${id}/edit`}><Pencil className="size-4" /> Editar</Link><button className="btn-danger" disabled={remove.isPending} onClick={() => { if (window.confirm("¿Eliminar esta configuración local?")) remove.mutate(); }}><Trash2 className="size-4" /> Eliminar</button></>}
       />
       {(location.state as { message?: string } | null)?.message ? <p className="alert-success">{(location.state as { message: string }).message}</p> : null}
       {retest.isError ? <p className="alert-error">{retest.error.message}</p> : null}

@@ -82,9 +82,7 @@ async def list_synchronizations(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> SynchronizationListResponse:
-    return await ListSynchronizationsService(context).execute(
-        connection_id, page, page_size
-    )
+    return await ListSynchronizationsService(context).execute(connection_id, page, page_size)
 
 
 @router.get(
@@ -96,9 +94,7 @@ async def get_synchronization(
     synchronization_id: uuid.UUID,
     context: SchemaContextDependency,
 ) -> SynchronizationResponse:
-    return await GetSynchronizationService(context).execute(
-        connection_id, synchronization_id
-    )
+    return await GetSynchronizationService(context).execute(connection_id, synchronization_id)
 
 
 @router.get("/changes", response_model=ChangeListResponse)

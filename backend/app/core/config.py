@@ -57,6 +57,14 @@ class Settings(BaseSettings):
     SCHEMA_SYNC_MAX_ENTITIES: int = Field(default=5000, ge=1, le=100000)
     SCHEMA_SYNC_INCLUDE_VIEWS: bool = True
     SCHEMA_SYNC_INCLUDE_SYSTEM_SCHEMAS: bool = False
+    RELATIONSHIP_DETECTION_ENABLED: bool = True
+    RELATIONSHIP_MIN_CONFIDENCE: float = Field(default=0.50, ge=0, le=1)
+    RELATIONSHIP_MAX_CANDIDATES: int = Field(default=1000, ge=1, le=10000)
+    RELATIONSHIP_MAX_COMPOSITE_FIELDS: int = Field(default=8, ge=1, le=32)
+    POLYMORPHIC_MAX_MAPPINGS: int = Field(default=100, ge=1, le=1000)
+    ENABLE_POLYMORPHIC_VALUE_DISCOVERY: bool = False
+    POLYMORPHIC_VALUE_DISCOVERY_LIMIT: int = Field(default=100, ge=1, le=1000)
+    POLYMORPHIC_VALUE_DISCOVERY_TIMEOUT_SECONDS: int = Field(default=10, ge=1, le=60)
 
     @property
     def database_url(self) -> str:

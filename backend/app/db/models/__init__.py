@@ -10,6 +10,14 @@ from app.db.models.schema import (
     SchemaRelationshipField,
     SchemaSynchronization,
 )
+from app.db.models.semantic import (
+    PolymorphicRelationship,
+    PolymorphicRelationshipMapping,
+    SemanticEntity,
+    SemanticField,
+    SemanticRelationship,
+    SemanticRelationshipField,
+)
 
 __all__ = [
     "AuditLog",
@@ -22,4 +30,10 @@ __all__ = [
     "SchemaPhysicalRelationship",
     "SchemaRelationshipField",
     "SchemaSynchronization",
+    "PolymorphicRelationship",
+    "PolymorphicRelationshipMapping",
+    "SemanticEntity",
+    "SemanticField",
+    "SemanticRelationship",
+    "SemanticRelationshipField",
 ]

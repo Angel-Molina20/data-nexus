@@ -23,6 +23,10 @@ from app.api.schemas.schema import (
     SynchronizationListResponse,
     SynchronizationResponse,
 )
+from app.application.relationships import (
+    DetectRelationshipCandidatesService,
+    RelationshipContext,
+)
 from app.core.config import Settings
 from app.db.models.database_connection import DatabaseConnection
 from app.db.models.schema import SchemaPhysicalRelationship, SchemaSynchronization
@@ -33,6 +37,7 @@ from app.infrastructure.network.policy import DatabaseHostPolicy
 from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.connections import DatabaseConnectionRepository
 from app.infrastructure.repositories.schema import SchemaRepository
+from app.infrastructure.repositories.semantic import SemanticCatalogRepository
 from app.infrastructure.security.encryption import CredentialEncryption
 
 
@@ -63,9 +68,7 @@ class SynchronizeSchemaService:
         synchronization: SchemaSynchronization | None = None
         started = time.monotonic()
         try:
-            synchronization = await self.context.schemas.create_synchronization(
-                connection_id
-            )
+            synchronization = await self.context.schemas.create_synchronization(connection_id)
             await self.context.audit.record(
                 action="schema.synchronize.started",
                 result="success",
@@ -104,9 +107,7 @@ class SynchronizeSchemaService:
                 raise PublicError(
                     "SCHEMA_SYNC_FAILED", "No fue posible guardar la sincronización.", 500
                 )
-            counters = await self.context.schemas.apply(
-                connection_id, synchronization, inspected
-            )
+            counters = await self.context.schemas.apply(connection_id, synchronization, inspected)
             synchronization.status = (
                 "completed_with_warnings" if inspected.warnings else "completed"
             )
@@ -130,6 +131,40 @@ class SynchronizeSchemaService:
                 connection_id=connection_id,
             )
             await self.context.session.commit()
+            relationship_context = RelationshipContext(
+                session=self.context.session,
+                connections=self.context.connections,
+                catalog=SemanticCatalogRepository(self.context.session),
+                audit=self.context.audit,
+                settings=self.context.settings,
+            )
+            try:
+                await relationship_context.catalog.invalidate_broken(connection_id)
+                await self.context.session.commit()
+                if self.context.settings.RELATIONSHIP_DETECTION_ENABLED:
+                    await DetectRelationshipCandidatesService(relationship_context).execute(
+                        connection_id
+                    )
+            except PublicError:
+                synchronization = await self.context.schemas.get_synchronization(
+                    connection_id, synchronization.id
+                )
+                if synchronization is not None:
+                    synchronization.status = "completed_with_warnings"
+                    synchronization.warnings_json = [
+                        *synchronization.warnings_json,
+                        (
+                            "Los metadatos se guardaron, pero no fue posible "
+                            "actualizar las sugerencias."
+                        ),
+                    ]
+                    await self.context.session.commit()
+            if synchronization is None:
+                raise PublicError(
+                    "SCHEMA_SYNC_FAILED",
+                    "No fue posible recuperar la sincronización.",
+                    500,
+                )
             await self.context.session.refresh(synchronization)
             return synchronization_response(synchronization)
         except PublicError as error:
@@ -173,15 +208,9 @@ class GetSchemaSummaryService:
             raw_version=connection.raw_version,
             last_synchronized_at=latest.finished_at if latest else None,
             status=latest.status if latest else None,
-            latest_added=(
-                latest.entities_added + latest.fields_added if latest else 0
-            ),
-            latest_updated=(
-                latest.entities_updated + latest.fields_updated if latest else 0
-            ),
-            latest_removed=(
-                latest.entities_removed + latest.fields_removed if latest else 0
-            ),
+            latest_added=(latest.entities_added + latest.fields_added if latest else 0),
+            latest_updated=(latest.entities_updated + latest.fields_updated if latest else 0),
+            latest_removed=(latest.entities_removed + latest.fields_removed if latest else 0),
             warnings=latest.warnings_json if latest else [],
             **counts,
         )
@@ -221,19 +250,13 @@ class GetEntityService:
     def __init__(self, context: SchemaContext) -> None:
         self.context = context
 
-    async def execute(
-        self, connection_id: uuid.UUID, entity_id: uuid.UUID
-    ) -> EntityDetailResponse:
+    async def execute(self, connection_id: uuid.UUID, entity_id: uuid.UUID) -> EntityDetailResponse:
         entity = await self.context.schemas.get_entity(connection_id, entity_id)
         if entity is None:
-            raise PublicError(
-                "SCHEMA_ENTITY_NOT_FOUND", "La entidad solicitada no existe.", 404
-            )
+            raise PublicError("SCHEMA_ENTITY_NOT_FOUND", "La entidad solicitada no existe.", 404)
         fields = await self.context.schemas.entity_fields(entity_id)
         indexes = await self.context.schemas.entity_indexes(entity_id)
-        relationships = await self.context.schemas.relationships(
-            connection_id, entity_id
-        )
+        relationships = await self.context.schemas.relationships(connection_id, entity_id)
         mapped_relationships = [_relationship_response(item) for item in relationships]
         return EntityDetailResponse(
             id=entity.id,
@@ -337,13 +360,9 @@ class GetSynchronizationService:
     async def execute(
         self, connection_id: uuid.UUID, synchronization_id: uuid.UUID
     ) -> SynchronizationResponse:
-        item = await self.context.schemas.get_synchronization(
-            connection_id, synchronization_id
-        )
+        item = await self.context.schemas.get_synchronization(connection_id, synchronization_id)
         if item is None:
-            raise PublicError(
-                "RESOURCE_NOT_FOUND", "La sincronización solicitada no existe.", 404
-            )
+            raise PublicError("RESOURCE_NOT_FOUND", "La sincronización solicitada no existe.", 404)
         return synchronization_response(item)
 
 
@@ -395,9 +414,7 @@ async def _require_connection(
 ) -> DatabaseConnection:
     connection = await context.connections.get(connection_id)
     if connection is None:
-        raise PublicError(
-            "RESOURCE_NOT_FOUND", "La conexión solicitada no existe.", 404
-        )
+        raise PublicError("RESOURCE_NOT_FOUND", "La conexión solicitada no existe.", 404)
     return connection
 
 

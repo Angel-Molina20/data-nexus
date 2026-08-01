@@ -71,9 +71,10 @@ class MySQLAdapter(DataSourceAdapter):
     def inspect_server(self) -> ServerInspection:
         try:
             with self._engine.connect() as connection:
-                row = connection.execute(
-                    text(
-                        """
+                row = (
+                    connection.execute(
+                        text(
+                            """
                         SELECT VERSION() AS version,
                           @@version_comment AS version_comment,
                           @@SESSION.sql_mode AS sql_mode,
@@ -82,19 +83,26 @@ class MySQLAdapter(DataSourceAdapter):
                           @@session.time_zone AS session_time_zone,
                           DATABASE() AS current_database
                         """
+                        )
                     )
-                ).mappings().one()
+                    .mappings()
+                    .one()
+                )
                 limits: dict[str, int | None] = {}
                 try:
-                    limit_row = connection.execute(
-                        text(
-                            """
+                    limit_row = (
+                        connection.execute(
+                            text(
+                                """
                             SELECT @@max_allowed_packet AS max_allowed_packet,
                               @@wait_timeout AS wait_timeout,
                               @@interactive_timeout AS interactive_timeout
                             """
+                            )
                         )
-                    ).mappings().one()
+                        .mappings()
+                        .one()
+                    )
                     limits = {
                         key: int(value) if value is not None else None
                         for key, value in limit_row.items()
@@ -138,9 +146,10 @@ class MySQLAdapter(DataSourceAdapter):
         warnings: list[str] = []
         try:
             with self._engine.connect() as connection:
-                entity_rows = connection.execute(
-                    text(
-                        """
+                entity_rows = (
+                    connection.execute(
+                        text(
+                            """
                         SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, ENGINE, TABLE_ROWS,
                                TABLE_COLLATION, TABLE_COMMENT
                         FROM information_schema.TABLES
@@ -148,18 +157,22 @@ class MySQLAdapter(DataSourceAdapter):
                           AND (:include_views = 1 OR TABLE_TYPE <> 'VIEW')
                         ORDER BY TABLE_NAME
                         """
-                    ),
-                    {"schema_name": schema_name, "include_views": int(include_views)},
-                ).mappings().all()
+                        ),
+                        {"schema_name": schema_name, "include_views": int(include_views)},
+                    )
+                    .mappings()
+                    .all()
+                )
                 if len(entity_rows) > max_entities:
                     raise PublicError(
                         "SCHEMA_METADATA_UNAVAILABLE",
                         "El esquema supera el límite configurado de entidades.",
                         400,
                     )
-                field_rows = connection.execute(
-                    text(
-                        """
+                field_rows = (
+                    connection.execute(
+                        text(
+                            """
                         SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT,
                                IS_NULLABLE, DATA_TYPE, COLUMN_TYPE,
                                CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE,
@@ -169,24 +182,32 @@ class MySQLAdapter(DataSourceAdapter):
                         WHERE TABLE_SCHEMA = :schema_name
                         ORDER BY TABLE_NAME, ORDINAL_POSITION
                         """
-                    ),
-                    {"schema_name": schema_name},
-                ).mappings().all()
-                index_rows = connection.execute(
-                    text(
-                        """
+                        ),
+                        {"schema_name": schema_name},
+                    )
+                    .mappings()
+                    .all()
+                )
+                index_rows = (
+                    connection.execute(
+                        text(
+                            """
                         SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE, SEQ_IN_INDEX,
                                COLUMN_NAME, COLLATION, SUB_PART, INDEX_TYPE
                         FROM information_schema.STATISTICS
                         WHERE TABLE_SCHEMA = :schema_name
                         ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX
                         """
-                    ),
-                    {"schema_name": schema_name},
-                ).mappings().all()
-                relationship_rows = connection.execute(
-                    text(
-                        """
+                        ),
+                        {"schema_name": schema_name},
+                    )
+                    .mappings()
+                    .all()
+                )
+                relationship_rows = (
+                    connection.execute(
+                        text(
+                            """
                         SELECT k.CONSTRAINT_NAME, k.TABLE_NAME, k.COLUMN_NAME,
                                k.ORDINAL_POSITION, k.REFERENCED_TABLE_NAME,
                                k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE
@@ -200,9 +221,12 @@ class MySQLAdapter(DataSourceAdapter):
                           AND k.REFERENCED_TABLE_NAME IS NOT NULL
                         ORDER BY k.TABLE_NAME, k.CONSTRAINT_NAME, k.ORDINAL_POSITION
                         """
-                    ),
-                    {"schema_name": schema_name},
-                ).mappings().all()
+                        ),
+                        {"schema_name": schema_name},
+                    )
+                    .mappings()
+                    .all()
+                )
         except PublicError:
             raise
         except (OperationalError, DBAPIError, SQLAlchemyError) as error:
@@ -243,9 +267,7 @@ class MySQLAdapter(DataSourceAdapter):
                     is_primary_key=str(row["COLUMN_KEY"]) == "PRI",
                     is_unique=(table_name, physical_name) in unique_fields,
                     is_auto_increment="auto_increment" in str(row["EXTRA"]).casefold(),
-                    character_maximum_length=_optional_int(
-                        row["CHARACTER_MAXIMUM_LENGTH"]
-                    ),
+                    character_maximum_length=_optional_int(row["CHARACTER_MAXIMUM_LENGTH"]),
                     numeric_precision=_optional_int(row["NUMERIC_PRECISION"]),
                     numeric_scale=_optional_int(row["NUMERIC_SCALE"]),
                     datetime_precision=_optional_int(row["DATETIME_PRECISION"]),
@@ -259,9 +281,7 @@ class MySQLAdapter(DataSourceAdapter):
             InspectedEntity(
                 physical_name=str(row["TABLE_NAME"]),
                 entity_type=(
-                    EntityType.VIEW
-                    if str(row["TABLE_TYPE"]) == "VIEW"
-                    else EntityType.TABLE
+                    EntityType.VIEW if str(row["TABLE_TYPE"]) == "VIEW" else EntityType.TABLE
                 ),
                 schema_name=str(row["TABLE_SCHEMA"]),
                 comment=_optional_string(row["TABLE_COMMENT"]),
@@ -277,14 +297,10 @@ class MySQLAdapter(DataSourceAdapter):
         return InspectedSchema(schema_name, entities, relationships, warnings)
 
     @staticmethod
-    def _group_indexes(
-        rows: Sequence[Any], warnings: list[str]
-    ) -> dict[str, list[InspectedIndex]]:
+    def _group_indexes(rows: Sequence[Any], warnings: list[str]) -> dict[str, list[InspectedIndex]]:
         grouped: dict[tuple[str, str], list[Any]] = {}
         for row in rows:
-            grouped.setdefault(
-                (str(row["TABLE_NAME"]), str(row["INDEX_NAME"])), []
-            ).append(row)
+            grouped.setdefault((str(row["TABLE_NAME"]), str(row["INDEX_NAME"])), []).append(row)
         result: dict[str, list[InspectedIndex]] = {}
         for (table_name, index_name), index_rows in grouped.items():
             fields = []
