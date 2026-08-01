@@ -341,6 +341,7 @@ class SavedQueryService:
         if changed:
             model.revision += 1
             await self.context.session.commit()
+            await self.context.session.refresh(model)
         return saved_response(model)
 
     async def validate(self, model: SavedQuery, permissions: set[str]) -> QueryValidationResponse:

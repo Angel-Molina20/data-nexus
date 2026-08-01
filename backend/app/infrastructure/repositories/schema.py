@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import delete, func, or_, select, text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
 from app.db.models.schema import (
     SchemaChange,
@@ -30,19 +30,37 @@ class SchemaRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def try_lock(self, connection_id: uuid.UUID) -> bool:
+    async def acquire_lock(self, connection_id: uuid.UUID) -> AsyncConnection | None:
         key = connection_id.int % (2**63 - 1)
-        return bool(
-            (
-                await self.session.execute(
-                    text("SELECT pg_try_advisory_lock(:lock_key)"), {"lock_key": key}
-                )
-            ).scalar_one()
-        )
+        bind = self.session.bind
+        if not isinstance(bind, AsyncEngine):
+            raise RuntimeError("Schema synchronization requires an async engine")
+        connection = await bind.connect()
+        try:
+            acquired = bool(
+                (
+                    await connection.execute(
+                        text("SELECT pg_try_advisory_lock(:lock_key)"), {"lock_key": key}
+                    )
+                ).scalar_one()
+            )
+            if acquired:
+                return connection
+        except BaseException:
+            await connection.close()
+            raise
+        await connection.close()
+        return None
 
-    async def unlock(self, connection_id: uuid.UUID) -> None:
+    async def release_lock(self, connection: AsyncConnection, connection_id: uuid.UUID) -> None:
         key = connection_id.int % (2**63 - 1)
-        await self.session.execute(text("SELECT pg_advisory_unlock(:lock_key)"), {"lock_key": key})
+        try:
+            await connection.execute(
+                text("SELECT pg_advisory_unlock(:lock_key)"), {"lock_key": key}
+            )
+            await connection.commit()
+        finally:
+            await connection.close()
 
     async def create_synchronization(self, connection_id: uuid.UUID) -> SchemaSynchronization:
         synchronization = SchemaSynchronization(

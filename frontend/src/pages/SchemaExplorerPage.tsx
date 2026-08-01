@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock3, Database, RefreshCw, Search, Table2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -20,6 +20,7 @@ export function SchemaExplorerPage() {
   const { id = "", entityId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const synchronizationInFlight = useRef(false);
   const [search, setSearch] = useState("");
   const [entityType, setEntityType] = useState("");
   const [showInactive, setShowInactive] = useState(false);
@@ -49,7 +50,15 @@ export function SchemaExplorerPage() {
         queryClient.invalidateQueries({ queryKey: ["schema-changes", id] }),
       ]);
     },
+    onSettled: () => {
+      synchronizationInFlight.current = false;
+    },
   });
+  const startSynchronization = () => {
+    if (synchronizationInFlight.current) return;
+    synchronizationInFlight.current = true;
+    synchronize.mutate();
+  };
   useEffect(() => {
     if (!entityId && entities.data?.items[0]) {
       void navigate(`/connections/${id}/schema/entities/${entities.data.items[0].id}`, {
@@ -69,7 +78,7 @@ export function SchemaExplorerPage() {
         description={`${metadata.engine} ${metadata.raw_version ?? ""} · ${metadata.last_synchronized_at ? `Última sincronización ${new Date(metadata.last_synchronized_at).toLocaleString()}` : "Sin sincronizar"}`}
         actions={<>
           <Link className="btn-secondary" to={`/connections/${id}/schema/synchronizations`}><Clock3 className="size-4" /> Historial</Link>
-          <button className="btn-primary" disabled={synchronize.isPending} onClick={() => { synchronize.mutate(); }}>
+          <button className="btn-primary" disabled={synchronize.isPending} onClick={startSynchronization}>
             <RefreshCw className={`size-4 ${synchronize.isPending ? "animate-spin" : ""}`} />
             {synchronize.isPending ? "Leyendo metadatos…" : "Sincronizar esquema"}
           </button>

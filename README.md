@@ -1,8 +1,8 @@
 # DataNexus
 
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
-repositorio contiene actualmente la **Fase 5**, con infraestructura, conexiones
-MySQL, catálogo semántico y autenticación/autorización real.
+repositorio contiene actualmente la **Fase 9**, con constructor visual,
+compilación parametrizada y ejecución segura de consultas de solo lectura.
 
 ## Alcance actual
 
@@ -22,8 +22,18 @@ MySQL, catálogo semántico y autenticación/autorización real.
 - Sesiones opacas, cookies HttpOnly, CSRF, Argon2id, RBAC y acceso por conexión.
 - Alembic y herramientas de pruebas, linting y comprobación de tipos.
 
-No incluye OAuth, LDAP, SAML, MFA, constructor de consultas, generación SQL ni
-reportes funcionales.
+No incluye OAuth, LDAP, SAML, MFA, editor SQL libre, reportes avanzados ni
+exportaciones definitivas.
+
+## Ejecución de consultas
+
+El constructor permite ejecutar exclusivamente el AST universal validado. El
+backend aplica compilación parametrizada, transacción de solo lectura,
+paginación, límites de filas/tamaño, timeout, cancelación best-effort e
+historial de metadatos. La tabla frontend admite columnas dinámicas,
+renderizadores por tipo e inspección de valores. Consulta
+[`docs/query-execution.md`](docs/query-execution.md) para contratos, variables,
+seguridad, pruebas y limitaciones.
 
 ## Autenticación y autorización
 

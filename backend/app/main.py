@@ -13,6 +13,7 @@ from app.api.routers.auth import router as auth_router
 from app.api.routers.compilations import router as compiler_router
 from app.api.routers.compilations import saved_router as query_compilations_router
 from app.api.routers.connections import router as connections_router
+from app.api.routers.executions import router as executions_router
 from app.api.routers.health import router as health_router
 from app.api.routers.queries import model_router as query_model_router
 from app.api.routers.queries import queries_router
@@ -73,5 +74,6 @@ app.include_router(query_model_router, prefix=settings.API_V1_PREFIX)
 app.include_router(queries_router, prefix=settings.API_V1_PREFIX)
 app.include_router(compiler_router, prefix=settings.API_V1_PREFIX)
 app.include_router(query_compilations_router, prefix=settings.API_V1_PREFIX)
+app.include_router(executions_router, prefix=settings.API_V1_PREFIX)
 app.add_exception_handler(PublicError, public_error_handler)  # type: ignore[arg-type]
 app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.domain.connections.models import MySQLCapabilities, ServerInspection
+from app.domain.query_execution.models import ExecutionResult
 from app.domain.schema.models import InspectedSchema
 
 
@@ -26,6 +27,21 @@ class DataSourceAdapter(ABC):
         include_system_schemas: bool,
     ) -> InspectedSchema:
         """Return universal structural metadata without reading business rows."""
+
+    @abstractmethod
+    def execute_query(
+        self,
+        sql: str,
+        parameters: dict[str, object],
+        *,
+        max_rows: int,
+        max_response_bytes: int,
+    ) -> ExecutionResult:
+        """Execute compiler-produced read-only SQL and return normalized data."""
+
+    @abstractmethod
+    def cancel_query(self) -> bool:
+        """Request cancellation of the currently active query when supported."""
 
     @abstractmethod
     def close(self) -> None:

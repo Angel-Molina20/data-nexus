@@ -67,7 +67,7 @@ export const router = createBrowserRouter([
             description="Organiza reportes reutilizables sobre múltiples fuentes de datos."
             detail="Los reportes funcionales se habilitarán en una fase posterior."
             icon={FileBarChart}
-            phase="Fase 9"
+            phase="Fase 10"
           />
         ),
       },
