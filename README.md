@@ -1,8 +1,8 @@
 # DataNexus
 
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
-repositorio contiene actualmente la **Fase 4**, con infraestructura, shell
-visual responsive, conexiones MySQL, catálogo local de esquemas y capa semántica.
+repositorio contiene actualmente la **Fase 5**, con infraestructura, conexiones
+MySQL, catálogo semántico y autenticación/autorización real.
 
 ## Alcance actual
 
@@ -19,10 +19,76 @@ visual responsive, conexiones MySQL, catálogo local de esquemas y capa semánti
 - Catálogo unificado de relaciones físicas, inferidas, manuales y polimórficas.
 - Nombres de negocio, tipos semánticos, visibilidad, campos sensibles y grafo
   básico mediante React Flow.
+- Sesiones opacas, cookies HttpOnly, CSRF, Argon2id, RBAC y acceso por conexión.
 - Alembic y herramientas de pruebas, linting y comprobación de tipos.
 
-No incluye autenticación, constructor de consultas, generación SQL ni reportes
-funcionales.
+No incluye OAuth, LDAP, SAML, MFA, constructor de consultas, generación SQL ni
+reportes funcionales.
+
+## Autenticación y autorización
+
+DataNexus ya no funciona anónimamente. Solo `/api/v1/health` permanece público;
+readiness y todos los recursos de las Fases 2–4 requieren sesión.
+
+Las sesiones usan tokens opacos aleatorios. El navegador recibe una cookie
+HttpOnly y PostgreSQL guarda únicamente SHA-256 del token. Hay expiración por
+inactividad y absoluta, revocación persistente y rotación al cambiar la
+contraseña. En producción se exige HTTPS y `SESSION_COOKIE_SECURE=true`.
+
+Las contraseñas utilizan Argon2id con salt automático y rehash oportunista. No
+se cifran con Fernet y nunca se devuelven hashes. La política, bloqueo temporal
+y límites de intentos se configuran en `.env`.
+
+Las mutaciones requieren un token CSRF asociado a la sesión mediante
+`X-CSRF-Token`, además de validar Origin. El frontend obtiene el token desde un
+endpoint controlado, usa `credentials: include` y no guarda tokens en
+`localStorage` ni `sessionStorage`.
+
+Inicializa roles y permisos y crea el primer administrador de forma interactiva:
+
+```bash
+make migrate
+make seed-rbac
+make create-admin
+```
+
+`create-admin` solicita correo, nombre, contraseña y confirmación sin exponer la
+contraseña en argumentos del proceso. No existe usuario ni contraseña
+predeterminada. Los roles de sistema son `administrator`, `analyst` y `viewer`;
+las decisiones backend usan permisos, no comparaciones de nombres de rol.
+
+El acceso a cada conexión usa `viewer < analyst < manager`. Salvo el
+superusuario bootstrap, un permiso global no concede por sí solo acceso a una
+fuente. Los recursos ajenos responden como no encontrados.
+
+El rate limiting de login se distribuye con Redis por IP y cuenta normalizada.
+Los bloqueos, logins, cambios de contraseña, usuarios, roles, accesos y
+revocaciones generan auditoría sanitizada sin contraseñas, cookies, CSRF ni
+tokens.
+
+Variables principales:
+
+```text
+PASSWORD_MIN_LENGTH=12
+SESSION_IDLE_TIMEOUT_MINUTES=60
+SESSION_ABSOLUTE_TIMEOUT_HOURS=12
+SESSION_COOKIE_SECURE=false
+MAX_FAILED_LOGIN_ATTEMPTS=5
+ACCOUNT_LOCK_MINUTES=15
+LOGIN_RATE_LIMIT_PER_MINUTE=5
+LOGIN_ACCOUNT_RATE_LIMIT_PER_15_MINUTES=10
+ALLOWED_ORIGINS=http://localhost:5173
+```
+
+Tras un reverse proxy deben conservarse HTTPS, cookies Secure, Origin correcto
+y cabeceras de cliente confiables. La recuperación por correo, OAuth, LDAP,
+Microsoft Entra ID, SAML y MFA quedan expresamente pendientes.
+
+En algunos hosts Linux, el volumen enlazado de `frontend` puede conservar
+archivos generados con el UID del contenedor. Los comandos de calidad funcionan;
+cuando una herramienta deba reescribirlos, debe ejecutarse con el UID/GID del
+host. No se cambió la estrategia de volúmenes en esta fase para no mezclar esa
+incidencia de infraestructura con autenticación.
 
 ## Requisitos
 

@@ -14,17 +14,19 @@ import type { NavigationItem } from "../types/navigation";
 
 export const navigationItems: readonly NavigationItem[] = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Conexiones", path: "/connections", icon: Database },
-  { label: "Explorador de esquemas", path: "/schema", icon: TableProperties },
+  { label: "Conexiones", path: "/connections", icon: Database, permission: "connections.read" },
+  { label: "Explorador de esquemas", path: "/schema", icon: TableProperties, permission: "schemas.read" },
   { label: "Consultas", path: "/queries", icon: SearchCode },
   { label: "Reportes", path: "/reports", icon: FileBarChart },
-  { label: "Catálogo semántico", path: "/semantic-catalog", icon: BookOpenText },
+  { label: "Catálogo semántico", path: "/semantic-catalog", icon: BookOpenText, permission: "semantic_catalog.read" },
   { label: "Programaciones", path: "/schedules", icon: CalendarClock },
-  { label: "Usuarios", path: "/users", icon: Users },
+  { label: "Usuarios", path: "/users", icon: Users, permission: "users.read" },
   { label: "Configuración", path: "/settings", icon: Settings },
 ];
 
 export function getPageTitle(pathname: string): string {
+  if (pathname === "/account/change-password") return "Cambiar contraseña";
+  if (pathname === "/settings/roles") return "Roles y permisos";
   if (pathname === "/connections/new") return "Nueva conexión";
   if (/^\/connections\/[^/]+\/edit$/.test(pathname)) return "Editar conexión";
   if (/^\/connections\/[^/]+\/schema\/synchronizations$/.test(pathname)) {

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import require_authenticated_request
 from app.api.schemas.health import HealthResponse, ReadinessDependencies, ReadinessResponse
 from app.db.session import check_database_connection, get_db_session
 
@@ -15,7 +16,11 @@ async def health() -> HealthResponse:
     return HealthResponse(status="ok", service="datanexus-api")
 
 
-@router.get("/ready", response_model=ReadinessResponse)
+@router.get(
+    "/ready",
+    response_model=ReadinessResponse,
+    dependencies=[Depends(require_authenticated_request)],
+)
 async def readiness(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ReadinessResponse:

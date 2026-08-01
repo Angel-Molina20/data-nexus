@@ -7,15 +7,19 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { PageSection } from "../components/layout/PageSection";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { deleteConnection, getConnection, retestConnection } from "../services/connections";
+import { useAuth } from "../features/auth/context";
+import { listConnectionAccess } from "../services/auth";
 
 export function ConnectionDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const auth = useAuth();
   const query = useQuery({ queryKey: ["connection", id], queryFn: () => getConnection(id), enabled: Boolean(id) });
   const retest = useMutation({ mutationFn: () => retestConnection(id), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["connection", id] }); } });
   const remove = useMutation({ mutationFn: () => deleteConnection(id), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["connections"] }); void navigate("/connections"); } });
+  const access = useQuery({ queryKey: ["connection-access", id], queryFn: () => listConnectionAccess(id), enabled: auth.hasPermission("connections.manage_access") });
 
   if (query.isPending) return <PageContainer><p className="state-message">Cargando conexión…</p></PageContainer>;
   if (query.isError) return <PageContainer><p className="alert-error">No fue posible cargar la conexión.</p></PageContainer>;
@@ -53,6 +57,7 @@ export function ConnectionDetailPage() {
       <PageSection title="Capacidades detectadas">
         <div className="flex flex-wrap gap-2">{Object.entries(connection.capabilities).map(([name, enabled]) => <StatusBadge key={name} variant={enabled ? "success" : "neutral"}>{name.replaceAll("_", " ")}</StatusBadge>)}</div>
       </PageSection>
+      {auth.hasPermission("connections.manage_access") ? <PageSection title="Acceso"><p className="mb-4 text-sm text-slate-500">Acceso específico por conexión. Los permisos globales siguen siendo obligatorios.</p>{access.isPending ? <p>Cargando acceso…</p> : <div className="grid gap-2">{access.data?.map((item) => <div className="flex items-center justify-between rounded-lg border p-3" key={item.user_id}><div><strong>{item.full_name}</strong><p className="text-xs text-slate-500">{item.email} · {item.roles.join(", ")}</p></div><StatusBadge>{item.access_level}</StatusBadge></div>)}{access.data?.length === 0 ? <p className="text-sm text-slate-500">No hay accesos explícitos.</p> : null}</div>}</PageSection> : null}
     </PageContainer>
   );
 }

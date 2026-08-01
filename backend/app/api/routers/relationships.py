@@ -1,9 +1,15 @@
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
-from app.api.dependencies import RelationshipContextDependency
+from app.api.dependencies import (
+    RelationshipContextDependency,
+    require_connection_manager,
+    require_connection_viewer,
+    require_csrf,
+    require_permission,
+)
 from app.api.schemas.relationships import (
     ConfirmCandidateRequest,
     DetectionResponse,
@@ -33,6 +39,11 @@ from app.domain.connections.errors import PublicError
 router = APIRouter(
     prefix="/connections/{connection_id}/relationships",
     tags=["relationships"],
+    dependencies=[
+        Depends(require_connection_viewer),
+        Depends(require_permission("relationships.read")),
+        Depends(require_csrf),
+    ],
 )
 
 
@@ -64,7 +75,14 @@ async def list_candidates(
     return await ListRelationshipsService(context).execute(connection_id, status="suggested")
 
 
-@router.post("/detect", response_model=DetectionResponse)
+@router.post(
+    "/detect",
+    response_model=DetectionResponse,
+    dependencies=[
+        Depends(require_permission("relationships.detect")),
+        Depends(require_connection_manager),
+    ],
+)
 async def detect_candidates(
     connection_id: uuid.UUID, context: RelationshipContextDependency
 ) -> DetectionResponse:
@@ -74,6 +92,10 @@ async def detect_candidates(
 @router.post(
     "/candidates/{candidate_id}/confirm",
     response_model=UnifiedRelationshipResponse,
+    dependencies=[
+        Depends(require_permission("relationships.confirm")),
+        Depends(require_connection_manager),
+    ],
 )
 async def confirm_candidate(
     connection_id: uuid.UUID,
@@ -87,6 +109,10 @@ async def confirm_candidate(
 @router.post(
     "/candidates/{candidate_id}/reject",
     response_model=UnifiedRelationshipResponse,
+    dependencies=[
+        Depends(require_permission("relationships.reject")),
+        Depends(require_connection_manager),
+    ],
 )
 async def reject_candidate(
     connection_id: uuid.UUID,
@@ -100,6 +126,10 @@ async def reject_candidate(
     "/manual",
     response_model=UnifiedRelationshipResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("relationships.create")),
+        Depends(require_connection_manager),
+    ],
 )
 async def create_manual_relationship(
     connection_id: uuid.UUID,
@@ -113,6 +143,10 @@ async def create_manual_relationship(
     "/polymorphic",
     response_model=PolymorphicRelationshipResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("relationships.create")),
+        Depends(require_connection_manager),
+    ],
 )
 async def create_polymorphic_relationship(
     connection_id: uuid.UUID,
@@ -137,6 +171,7 @@ async def get_polymorphic_relationship(
 @router.patch(
     "/polymorphic/{relationship_id}",
     response_model=PolymorphicRelationshipResponse,
+    dependencies=[Depends(require_permission("relationships.update"))],
 )
 async def update_polymorphic_relationship(
     connection_id: uuid.UUID,
@@ -154,7 +189,11 @@ async def update_polymorphic_relationship(
     return await PolymorphicRelationshipService(context).get(connection_id, relationship_id)
 
 
-@router.delete("/polymorphic/{relationship_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/polymorphic/{relationship_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission("relationships.delete"))],
+)
 async def delete_polymorphic_relationship(
     connection_id: uuid.UUID,
     relationship_id: uuid.UUID,
@@ -167,6 +206,7 @@ async def delete_polymorphic_relationship(
 @router.post(
     "/polymorphic/{relationship_id}/mappings",
     response_model=PolymorphicRelationshipResponse,
+    dependencies=[Depends(require_permission("relationships.update"))],
 )
 async def add_polymorphic_mapping(
     connection_id: uuid.UUID,
@@ -182,6 +222,7 @@ async def add_polymorphic_mapping(
 @router.patch(
     "/polymorphic/{relationship_id}/mappings/{mapping_id}",
     response_model=PolymorphicRelationshipResponse,
+    dependencies=[Depends(require_permission("relationships.update"))],
 )
 async def update_polymorphic_mapping(
     connection_id: uuid.UUID,
@@ -198,6 +239,7 @@ async def update_polymorphic_mapping(
 @router.delete(
     "/polymorphic/{relationship_id}/mappings/{mapping_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission("relationships.update"))],
 )
 async def delete_polymorphic_mapping(
     connection_id: uuid.UUID,
@@ -244,7 +286,11 @@ async def get_relationship(
     raise PublicError("RELATIONSHIP_NOT_FOUND", "La relación no existe.", 404)
 
 
-@router.patch("/{relationship_id}", response_model=UnifiedRelationshipResponse)
+@router.patch(
+    "/{relationship_id}",
+    response_model=UnifiedRelationshipResponse,
+    dependencies=[Depends(require_permission("relationships.update"))],
+)
 async def update_relationship(
     connection_id: uuid.UUID,
     relationship_id: uuid.UUID,
@@ -254,7 +300,11 @@ async def update_relationship(
     return await UpdateRelationshipService(context).execute(connection_id, relationship_id, request)
 
 
-@router.delete("/{relationship_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{relationship_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission("relationships.delete"))],
+)
 async def delete_relationship(
     connection_id: uuid.UUID,
     relationship_id: uuid.UUID,
@@ -264,7 +314,11 @@ async def delete_relationship(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/{relationship_id}/disable", response_model=UnifiedRelationshipResponse)
+@router.post(
+    "/{relationship_id}/disable",
+    response_model=UnifiedRelationshipResponse,
+    dependencies=[Depends(require_permission("relationships.update"))],
+)
 async def disable_relationship(
     connection_id: uuid.UUID,
     relationship_id: uuid.UUID,
@@ -275,7 +329,11 @@ async def disable_relationship(
     )
 
 
-@router.post("/{relationship_id}/enable", response_model=UnifiedRelationshipResponse)
+@router.post(
+    "/{relationship_id}/enable",
+    response_model=UnifiedRelationshipResponse,
+    dependencies=[Depends(require_permission("relationships.update"))],
+)
 async def enable_relationship(
     connection_id: uuid.UUID,
     relationship_id: uuid.UUID,

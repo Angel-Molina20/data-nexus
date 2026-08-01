@@ -1,8 +1,14 @@
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from app.api.dependencies import RelationshipContextDependency
+from app.api.dependencies import (
+    RelationshipContextDependency,
+    require_connection_manager,
+    require_connection_viewer,
+    require_csrf,
+    require_permission,
+)
 from app.api.schemas.relationships import (
     SemanticEntityListResponse,
     SemanticEntityResponse,
@@ -20,6 +26,11 @@ from app.application.semantic import (
 router = APIRouter(
     prefix="/connections/{connection_id}/semantic",
     tags=["semantic-catalog"],
+    dependencies=[
+        Depends(require_connection_viewer),
+        Depends(require_permission("semantic_catalog.read")),
+        Depends(require_csrf),
+    ],
 )
 
 
@@ -39,7 +50,14 @@ async def get_semantic_entity(
     return await GetSemanticEntityService(context).execute(connection_id, entity_id)
 
 
-@router.patch("/entities/{entity_id}", response_model=SemanticEntityResponse)
+@router.patch(
+    "/entities/{entity_id}",
+    response_model=SemanticEntityResponse,
+    dependencies=[
+        Depends(require_permission("semantic_catalog.update")),
+        Depends(require_connection_manager),
+    ],
+)
 async def update_semantic_entity(
     connection_id: uuid.UUID,
     entity_id: uuid.UUID,
@@ -49,7 +67,14 @@ async def update_semantic_entity(
     return await UpdateSemanticEntityService(context).execute(connection_id, entity_id, request)
 
 
-@router.patch("/fields/{field_id}", response_model=SemanticFieldResponse)
+@router.patch(
+    "/fields/{field_id}",
+    response_model=SemanticFieldResponse,
+    dependencies=[
+        Depends(require_permission("semantic_catalog.update")),
+        Depends(require_connection_manager),
+    ],
+)
 async def update_semantic_field(
     connection_id: uuid.UUID,
     field_id: uuid.UUID,
