@@ -1,7 +1,6 @@
 import {
   CalendarClock,
   FileBarChart,
-  SearchCode,
   Settings,
 } from "lucide-react";
 import { createBrowserRouter } from "react-router";
@@ -27,6 +26,10 @@ import { ChangePasswordPage } from "../pages/ChangePasswordPage";
 import { LoginPage } from "../pages/LoginPage";
 import { RolesPage } from "../pages/RolesPage";
 import { UsersPage } from "../pages/UsersPage";
+import { NewQueryPage } from "../pages/NewQueryPage";
+import { QueriesPage } from "../pages/QueriesPage";
+import { QueryDetailPage } from "../pages/QueryDetailPage";
+import { QueryJsonEditorPage } from "../pages/QueryJsonEditorPage";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: LoginPage },
@@ -48,18 +51,10 @@ export const router = createBrowserRouter([
       { path: "connections/:id/relationships/new", Component: ManualRelationshipPage },
       { path: "connections/:id/relationships/polymorphic/new", Component: PolymorphicRelationshipPage },
       { path: "connections/:id/semantic-catalog", Component: SemanticCatalogPage },
-      {
-        path: "queries",
-        element: (
-          <ModulePage
-            title="Consultas"
-            description="Construye y administra consultas visuales parametrizadas."
-            detail="El constructor visual se incorporará cuando estén listos el catálogo y el modelo universal."
-            icon={SearchCode}
-            phase="Fase 8"
-          />
-        ),
-      },
+      { path: "queries", element: <PermissionGuard permission="queries.read"><QueriesPage /></PermissionGuard> },
+      { path: "queries/new", element: <PermissionGuard permission="queries.create"><NewQueryPage /></PermissionGuard> },
+      { path: "queries/:id", element: <PermissionGuard permission="queries.read"><QueryDetailPage /></PermissionGuard> },
+      { path: "queries/:id/edit-json", element: <PermissionGuard permission="queries.update"><QueryJsonEditorPage /></PermissionGuard> },
       {
         path: "reports",
         element: (

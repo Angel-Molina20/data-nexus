@@ -294,6 +294,38 @@ esta fase todavía no genera ni ejecuta consultas.
 
 ## Operación de Docker Compose
 
+## Modelo universal de consultas
+
+DataNexus representa cada consulta mediante un AST JSON versionado (`schema_version: 1.0`).
+El frontend nunca envía SQL: referencia conexiones, entidades, campos y relaciones mediante UUID,
+y utiliza identificadores locales para sources, scopes y aliases. El modelo incluye selecciones,
+expresiones, funciones universales, agregaciones, predicados, joins físicos/lógicos/polimórficos,
+parámetros, agrupación, HAVING, ordenamiento, subconsultas correlacionadas, EXISTS, IN y UNION.
+
+La API expone el JSON Schema en `GET /api/v1/query-model/schema` y permite validar,
+normalizar y calcular complejidad sin consultar MySQL. La validación se realiza contra el catálogo
+local de PostgreSQL, revisa visibilidad semántica, campos sensibles, acceso `analyst`, relaciones y
+capacidades detectadas. Una relación polimórfica requiere tanto relación como mapping, conservando
+el discriminador y el identificador para el futuro compilador.
+
+Los borradores se guardan en `saved_queries` como JSONB, con propietario, fingerprint SHA-256,
+resultado de validación, complejidad y revisión optimista. Un `PATCH` con revisión antigua responde
+`QUERY_REVISION_CONFLICT`; no sobrescribe cambios silenciosamente. Los parámetros sensibles no
+pueden guardar defaults y los documentos nunca contienen valores de ejecución.
+
+```text
+GET/POST /api/v1/queries
+GET/PATCH/DELETE /api/v1/queries/{uuid}
+POST /api/v1/queries/{uuid}/validate
+POST /api/v1/queries/{uuid}/duplicate
+POST /api/v1/queries/{uuid}/archive
+```
+
+Los límites `QUERY_MAX_*` controlan tamaño, nodos, profundidad, joins, selecciones, parámetros,
+unions, valores IN y límite declarado. `/queries/new` crea plantillas AST; `/queries/{id}` muestra
+la estructura y `/queries/{id}/edit-json` ofrece el editor técnico ligero. Esta fase no compila,
+previsualiza ni ejecuta SQL, no acepta nombres físicos arbitrarios y no toca la fuente MySQL.
+
 ```bash
 make build       # construir imágenes
 make up          # construir e iniciar en segundo plano
