@@ -10,7 +10,7 @@ import {
   detectRelationshipCandidates,
   listRelationshipCandidates,
   rejectRelationshipCandidate,
-} from "../services/relationships";
+} from "../features/relationships/api/relationshipsApi";
 
 export function RelationshipCandidatesPage() {
   const { id = "" } = useParams();
@@ -44,26 +44,99 @@ export function RelationshipCandidatesPage() {
         eyebrow="Relaciones inferidas"
         title="Sugerencias pendientes"
         description="Ninguna relación sugerida se activa sin confirmación administrativa."
-        actions={<><Link className="btn-secondary" to={`/connections/${id}/relationships`}><ArrowLeft className="size-4" />Volver a relaciones</Link><button className="btn-primary" disabled={detect.isPending} onClick={() => { detect.mutate(); }}><ScanSearch className="size-4" />{detect.isPending ? "Detectando…" : "Volver a detectar"}</button></>}
+        actions={
+          <>
+            <Link className="btn-secondary" to={`/connections/${id}/relationships`}>
+              <ArrowLeft className="size-4" />
+              Volver a relaciones
+            </Link>
+            <button
+              className="btn-primary"
+              disabled={detect.isPending}
+              onClick={() => {
+                detect.mutate();
+              }}
+            >
+              <ScanSearch className="size-4" />
+              {detect.isPending ? "Detectando…" : "Volver a detectar"}
+            </button>
+          </>
+        }
       />
       {candidates.isPending ? <p className="state-message">Cargando sugerencias…</p> : null}
-      {candidates.isError ? <p className="alert-error">No fue posible cargar las sugerencias.</p> : null}
+      {candidates.isError ? (
+        <p className="alert-error">No fue posible cargar las sugerencias.</p>
+      ) : null}
       <div className="grid gap-4">
         {candidates.data?.items.map((item) => (
           <article className="rounded-xl border border-slate-200 bg-white p-5" key={item.id}>
-            <div className="flex flex-wrap items-center gap-2"><StatusBadge variant="info">{item.type}</StatusBadge><strong>{item.source.entity_name}.{item.source.fields.join(" + ")}</strong><span aria-hidden>→</span><strong>{item.target ? `${item.target.entity_name}.${item.target.fields.join(" + ")}` : "Mappings configurables"}</strong><span className="ml-auto rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{Math.round(item.confidence * 100)}% confianza</span></div>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge variant="info">{item.type}</StatusBadge>
+              <strong>
+                {item.source.entity_name}.{item.source.fields.join(" + ")}
+              </strong>
+              <span aria-hidden>→</span>
+              <strong>
+                {item.target
+                  ? `${item.target.entity_name}.${item.target.fields.join(" + ")}`
+                  : "Mappings configurables"}
+              </strong>
+              <span className="ml-auto rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                {Math.round(item.confidence * 100)}% confianza
+              </span>
+            </div>
             <p className="mt-3 text-sm text-slate-600">Cardinalidad sugerida: {item.cardinality}</p>
-            <ul className="mt-2 list-disc pl-5 text-sm text-slate-500">{item.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-            {item.warnings.map((warning) => <p className="mt-2 text-sm text-amber-700" key={warning}>{warning}</p>)}
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-500">
+              {item.reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+            {item.warnings.map((warning) => (
+              <p className="mt-2 text-sm text-amber-700" key={warning}>
+                {warning}
+              </p>
+            ))}
             <div className="mt-4 flex flex-wrap gap-2">
-              {item.type === "polymorphic" ? <Link className="btn-primary" to={`/connections/${id}/relationships/polymorphic/new`}><GitFork className="size-4" /> Configurar mappings</Link> : <button className="btn-primary" disabled={confirm.isPending} onClick={() => { confirm.mutate(item.id); }}><Check className="size-4" /> Confirmar</button>}
-              <button className="btn-secondary" disabled={reject.isPending} onClick={() => { reject.mutate(item.id); }}><X className="size-4" /> Rechazar</button>
+              {item.type === "polymorphic" ? (
+                <Link
+                  className="btn-primary"
+                  to={`/connections/${id}/relationships/polymorphic/new`}
+                >
+                  <GitFork className="size-4" /> Configurar mappings
+                </Link>
+              ) : (
+                <button
+                  className="btn-primary"
+                  disabled={confirm.isPending}
+                  onClick={() => {
+                    confirm.mutate(item.id);
+                  }}
+                >
+                  <Check className="size-4" /> Confirmar
+                </button>
+              )}
+              <button
+                className="btn-secondary"
+                disabled={reject.isPending}
+                onClick={() => {
+                  reject.mutate(item.id);
+                }}
+              >
+                <X className="size-4" /> Rechazar
+              </button>
             </div>
           </article>
         ))}
-        {candidates.data?.items.length === 0 ? <div className="state-message rounded-xl border border-slate-200 bg-white">No hay sugerencias pendientes.</div> : null}
+        {candidates.data?.items.length === 0 ? (
+          <div className="state-message rounded-xl border border-slate-200 bg-white">
+            No hay sugerencias pendientes.
+          </div>
+        ) : null}
       </div>
-      <p className="text-xs text-slate-500">Los rechazos se conservan mediante fingerprint y no reaparecen mientras no cambie su estructura.</p>
+      <p className="text-xs text-slate-500">
+        Los rechazos se conservan mediante fingerprint y no reaparecen mientras no cambie su
+        estructura.
+      </p>
     </PageContainer>
   );
 }

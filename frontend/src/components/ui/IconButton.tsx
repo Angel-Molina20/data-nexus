@@ -9,6 +9,21 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   variant?: ButtonVariant;
 }
 
-export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton({ children, label, size = "md", title = label, variant = "ghost", ...props }, ref) {
-  return <Button aria-label={label} iconOnly ref={ref} size={size} title={title} variant={variant} {...props}>{children}</Button>;
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+  { children, label, size = "md", title = label, variant = "ghost", ...props },
+  ref,
+) {
+  return (
+    <Button
+      aria-label={label}
+      iconOnly
+      ref={ref}
+      size={size}
+      title={title}
+      variant={variant}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
 });

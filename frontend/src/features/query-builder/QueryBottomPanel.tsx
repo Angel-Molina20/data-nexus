@@ -3,14 +3,154 @@ import { CheckCircle2, Copy, Info, TriangleAlert, XCircle } from "lucide-react";
 import type { QueryDocument, QueryIssue } from "../queries/types";
 import type { BottomTab, BuilderState } from "./state";
 
-export function QueryBottomPanel({ state, localProblems, onTab }: { state: BuilderState; localProblems: QueryIssue[]; onTab: (tab: BottomTab) => void }) {
+export function QueryBottomPanel({
+  state,
+  localProblems,
+  onTab,
+}: {
+  state: BuilderState;
+  localProblems: QueryIssue[];
+  onTab: (tab: BottomTab) => void;
+}) {
   const tabs: BottomTab[] = ["problems", "parameters", "sql", "complexity", "json"];
-  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-  return <section className="border-t bg-white"><div className="flex overflow-x-auto border-b px-3">{tabs.map((tab) => <button className={`border-b-2 px-4 py-2 text-xs font-semibold ${state.bottomTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`} key={tab} onClick={() => { onTab(tab); }}>{names[tab]}{tab === "problems" && localProblems.length ? ` (${localProblems.length})` : ""}</button>)}</div><div className="h-48 overflow-auto p-4">{state.bottomTab === "problems" ? <Problems local={localProblems} remote={state.validation ? [...state.validation.errors, ...state.validation.warnings] : []} /> : null}{state.bottomTab === "parameters" ? <ParameterSummary document={state.workingQuery} /> : null}{state.bottomTab === "sql" ? <Sql state={state} /> : null}{state.bottomTab === "complexity" ? <Complexity state={state} /> : null}{state.bottomTab === "json" ? <pre className="text-xs">{JSON.stringify(state.workingQuery, null, 2)}</pre> : null}</div></section>;
+  return (
+    <section className="border-t bg-white">
+      <div className="flex overflow-x-auto border-b px-3">
+        {tabs.map((tab) => (
+          <button
+            className={`border-b-2 px-4 py-2 text-xs font-semibold ${state.bottomTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}
+            key={tab}
+            onClick={() => {
+              onTab(tab);
+            }}
+          >
+            {names[tab]}
+            {tab === "problems" && localProblems.length ? ` (${String(localProblems.length)})` : ""}
+          </button>
+        ))}
+      </div>
+      <div className="h-48 overflow-auto p-4">
+        {state.bottomTab === "problems" ? (
+          <Problems
+            local={localProblems}
+            remote={
+              state.validation ? [...state.validation.errors, ...state.validation.warnings] : []
+            }
+          />
+        ) : null}
+        {state.bottomTab === "parameters" ? (
+          <ParameterSummary document={state.workingQuery} />
+        ) : null}
+        {state.bottomTab === "sql" ? <Sql state={state} /> : null}
+        {state.bottomTab === "complexity" ? <Complexity state={state} /> : null}
+        {state.bottomTab === "json" ? (
+          <pre className="text-xs">{JSON.stringify(state.workingQuery, null, 2)}</pre>
+        ) : null}
+      </div>
+    </section>
+  );
 }
-const names: Record<BottomTab, string> = { problems: "Problemas", parameters: "Parámetros", sql: "SQL", complexity: "Complejidad", json: "JSON técnico" };
-// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-function Problems({ local, remote }: { local: QueryIssue[]; remote: QueryIssue[] }) { const items = remote.length ? remote : local; if (!items.length) return <p className="flex items-center gap-2 text-sm text-emerald-700"><CheckCircle2 className="size-4" />No hay problemas conocidos. Ejecuta la validación definitiva.</p>; return <div className="space-y-2">{items.map((issue, index) => <button className="flex w-full items-start gap-2 rounded-lg border p-2 text-left text-sm" key={`${issue.code}-${index}`}><span>{issue.severity === "error" ? <XCircle className="size-4 text-red-600" /> : <TriangleAlert className="size-4 text-amber-600" />}</span><span><strong>{issue.code}</strong> — {issue.message}<small className="block text-slate-400">{issue.path}</small></span></button>)}</div>; }
-function ParameterSummary({ document }: { document: QueryDocument }) { return document.parameters.length ? <div className="grid gap-2 md:grid-cols-2">{document.parameters.map((item) => <div className="rounded-lg border p-3 text-sm" key={item.parameter_id}><strong>{item.label}</strong><p className="text-xs text-slate-500">{item.data_type} · {item.required ? "Requerido" : "Opcional"}{item.sensitive ? " · Sensible" : ""}</p></div>)}</div> : <p className="text-sm text-slate-500">No hay parámetros definidos.</p>; }
-function Sql({ state }: { state: BuilderState }) { if (!state.compilation) return <p className="flex gap-2 text-sm text-slate-500"><Info className="size-4" />Valida y compila para obtener la vista previa. No se ejecutará la consulta.</p>; return <div><div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold text-emerald-700">Vista previa únicamente · executed={String(state.compilation.executed)}</p><button className="btn-secondary min-h-8 px-2 py-1 text-xs" onClick={() => { void navigator.clipboard.writeText(state.compilation?.sql ?? ""); }}><Copy className="size-3" />Copiar</button></div><pre className="overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">{state.compilation.sql}</pre></div>; }
-function Complexity({ state }: { state: BuilderState }) { const value = state.validation?.complexity ?? state.compilation?.complexity; return value ? <div><strong className="text-lg capitalize">Complejidad {value.level}</strong><span className="ml-2 text-sm text-slate-500">Score {value.score}</span><div className="mt-3 flex flex-wrap gap-2">{Object.entries(value.metrics).map(([key, count]) => <span className="rounded-full bg-slate-100 px-3 py-1 text-xs" key={key}>{key}: {count}</span>)}</div></div> : <p className="text-sm text-slate-500">Valida la consulta para calcular su complejidad.</p>; }
+const names: Record<BottomTab, string> = {
+  problems: "Problemas",
+  parameters: "Parámetros",
+  sql: "SQL",
+  complexity: "Complejidad",
+  json: "JSON técnico",
+};
+function Problems({ local, remote }: { local: QueryIssue[]; remote: QueryIssue[] }) {
+  const items = remote.length ? remote : local;
+  if (!items.length)
+    return (
+      <p className="flex items-center gap-2 text-sm text-emerald-700">
+        <CheckCircle2 className="size-4" />
+        No hay problemas conocidos. Ejecuta la validación definitiva.
+      </p>
+    );
+  return (
+    <div className="space-y-2">
+      {items.map((issue, index) => (
+        <button
+          className="flex w-full items-start gap-2 rounded-lg border p-2 text-left text-sm"
+          key={`${issue.code}-${String(index)}`}
+        >
+          <span>
+            {issue.severity === "error" ? (
+              <XCircle className="size-4 text-red-600" />
+            ) : (
+              <TriangleAlert className="size-4 text-amber-600" />
+            )}
+          </span>
+          <span>
+            <strong>{issue.code}</strong> — {issue.message}
+            <small className="block text-slate-400">{issue.path}</small>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+function ParameterSummary({ document }: { document: QueryDocument }) {
+  return document.parameters.length ? (
+    <div className="grid gap-2 md:grid-cols-2">
+      {document.parameters.map((item) => (
+        <div className="rounded-lg border p-3 text-sm" key={item.parameter_id}>
+          <strong>{item.label}</strong>
+          <p className="text-xs text-slate-500">
+            {item.data_type} · {item.required ? "Requerido" : "Opcional"}
+            {item.sensitive ? " · Sensible" : ""}
+          </p>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="text-sm text-slate-500">No hay parámetros definidos.</p>
+  );
+}
+function Sql({ state }: { state: BuilderState }) {
+  if (!state.compilation)
+    return (
+      <p className="flex gap-2 text-sm text-slate-500">
+        <Info className="size-4" />
+        Valida y compila para obtener la vista previa. No se ejecutará la consulta.
+      </p>
+    );
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold text-emerald-700">
+          Vista previa únicamente · executed={String(state.compilation.executed)}
+        </p>
+        <button
+          className="btn-secondary min-h-8 px-2 py-1 text-xs"
+          onClick={() => {
+            void navigator.clipboard.writeText(state.compilation?.sql ?? "");
+          }}
+        >
+          <Copy className="size-3" />
+          Copiar
+        </button>
+      </div>
+      <pre className="overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">
+        {state.compilation.sql}
+      </pre>
+    </div>
+  );
+}
+function Complexity({ state }: { state: BuilderState }) {
+  const value = state.validation?.complexity ?? state.compilation?.complexity;
+  return value ? (
+    <div>
+      <strong className="text-lg capitalize">Complejidad {value.level}</strong>
+      <span className="ml-2 text-sm text-slate-500">Score {value.score}</span>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {Object.entries(value.metrics).map(([key, count]) => (
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs" key={key}>
+            {key}: {count}
+          </span>
+        ))}
+      </div>
+    </div>
+  ) : (
+    <p className="text-sm text-slate-500">Valida la consulta para calcular su complejidad.</p>
+  );
+}

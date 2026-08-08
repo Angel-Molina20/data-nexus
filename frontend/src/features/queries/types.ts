@@ -1,18 +1,178 @@
-export interface QueryExpression { node_type: string; [key: string]: unknown }
-export interface QuerySource { source_id: string; entity_id: string; alias: string; semantic_name?: string | null }
-export interface QuerySelectItem { select_id: string; item_type: string; expression: QueryExpression; alias?: string | null; label?: string | null; hidden?: boolean; format?: string | null }
-export interface QueryJoin { join_id: string; join_type: "inner" | "left" | "right" | "cross"; source: QuerySource; relationship_id?: string | null; polymorphic_mapping_id?: string | null; on?: QueryExpression | null; options?: Record<string, boolean | string> }
-export interface QueryBody { scope_id: string; query_type: "select"; source: QuerySource; joins: QueryJoin[]; select: QuerySelectItem[]; where?: QueryExpression | null; group_by: Array<{ expression: QueryExpression; position?: number | null }>; having?: QueryExpression | null; order_by: Array<{ expression: QueryExpression; direction: "ascending" | "descending"; nulls: "first" | "last" | "engine_default" }>; distinct: boolean; limit?: number | null; offset?: number | null; unions: Array<{ union_id: string; operation: "union" | "union_all"; query: QueryBody }> }
-export interface QueryParameter { parameter_id: string; name: string; label: string; description?: string | null; data_type: string; required: boolean; nullable: boolean; default_value?: unknown; allowed_values?: Array<string | number | boolean> | null; validation: Record<string, unknown>; sensitive: boolean; display_order: number }
-export interface BuilderLayout { nodes: Record<string, { x: number; y: number; collapsed: boolean }>; panels: { catalog_width: number; inspector_width: number } }
-export interface QueryDocument { schema_version: string; connection_id: string; query: QueryBody; parameters: QueryParameter[]; metadata: Record<string, unknown> & { builder_layout?: BuilderLayout }; options: Record<string, boolean> }
-export interface QueryIssue { code: string; message: string; severity: string; path: string; node_id: string | null; }
-export interface Complexity { score: number; level: string; metrics: Record<string, number>; }
-export interface ValidationResult { valid: boolean; errors: QueryIssue[]; warnings: QueryIssue[]; capabilities_required: string[]; referenced_entities: string[]; referenced_fields: string[]; referenced_relationships: string[]; parameters: string[]; complexity: Complexity; normalized_query: QueryDocument; fingerprint: string; }
-export interface SavedQuery { id: string; name: string; description: string | null; connection_id: string; owner_user_id: string; document: QueryDocument; schema_version: string; status: string; validation_status: string; validation_errors: QueryIssue[]; validation_warnings: QueryIssue[]; fingerprint: string | null; complexity: Complexity | null; revision: number; last_validated_at: string | null; created_at: string; updated_at: string; }
-export interface SavedQueryList { items: SavedQuery[]; total: number; page: number; page_size: number; }
-export interface CompilationParameter { source: string; data_type: string; sensitive: boolean; parameter_id: string | null; has_value: boolean; }
-export interface CompilationMessage { code: string; message: string; }
-export interface CompilationResult { id: string | null; success: boolean; engine: string; provider: string; server_version: string | null; dialect: string; compiler_version: string; sql: string; parameters: Record<string, CompilationParameter>; warnings: CompilationMessage[]; errors: CompilationMessage[]; capabilities_used: string[]; referenced_entities: string[]; referenced_fields: string[]; referenced_relationships: string[]; query_fingerprint: string; compilation_fingerprint: string; complexity: Complexity; executed: false; }
-export interface CompilerCapabilities { connection_id: string; engine: string; provider: string; server_version: string | null; compiler_version: string; capabilities: Record<string, boolean>; supported_features: string[]; warnings: CompilationMessage[]; }
-export interface CompilationHistoryItem { id: string; saved_query_id: string | null; query_revision: number | null; compilation_fingerprint: string; compiler_version: string; engine: string; provider: string; server_version: string | null; status: string; duration_ms: number; compiled_at: string; }
+export interface QueryExpression {
+  node_type: string;
+  [key: string]: unknown;
+}
+export interface QuerySource {
+  source_id: string;
+  entity_id: string;
+  alias: string;
+  semantic_name?: string | null;
+}
+export interface QuerySelectItem {
+  select_id: string;
+  item_type: string;
+  expression: QueryExpression;
+  alias?: string | null;
+  label?: string | null;
+  hidden?: boolean;
+  format?: string | null;
+}
+export interface QueryJoin {
+  join_id: string;
+  join_type: "inner" | "left" | "right" | "cross";
+  source: QuerySource;
+  relationship_id?: string | null;
+  polymorphic_mapping_id?: string | null;
+  on?: QueryExpression | null;
+  options?: Record<string, boolean | string>;
+}
+export interface QueryBody {
+  scope_id: string;
+  query_type: "select";
+  source: QuerySource;
+  joins: QueryJoin[];
+  select: QuerySelectItem[];
+  where?: QueryExpression | null;
+  group_by: Array<{ expression: QueryExpression; position?: number | null }>;
+  having?: QueryExpression | null;
+  order_by: Array<{
+    expression: QueryExpression;
+    direction: "ascending" | "descending";
+    nulls: "first" | "last" | "engine_default";
+  }>;
+  distinct: boolean;
+  limit?: number | null;
+  offset?: number | null;
+  unions: Array<{ union_id: string; operation: "union" | "union_all"; query: QueryBody }>;
+}
+export interface QueryParameter {
+  parameter_id: string;
+  name: string;
+  label: string;
+  description?: string | null;
+  data_type: string;
+  required: boolean;
+  nullable: boolean;
+  default_value?: unknown;
+  allowed_values?: Array<string | number | boolean> | null;
+  validation: Record<string, unknown>;
+  sensitive: boolean;
+  display_order: number;
+}
+export interface BuilderLayout {
+  nodes: Record<string, { x: number; y: number; collapsed: boolean }>;
+  panels: { catalog_width: number; inspector_width: number };
+}
+export interface QueryDocument {
+  schema_version: string;
+  connection_id: string;
+  query: QueryBody;
+  parameters: QueryParameter[];
+  metadata: Record<string, unknown> & { builder_layout?: BuilderLayout };
+  options: Record<string, boolean>;
+}
+export interface QueryIssue {
+  code: string;
+  message: string;
+  severity: string;
+  path: string;
+  node_id: string | null;
+}
+export interface Complexity {
+  score: number;
+  level: string;
+  metrics: Record<string, number>;
+}
+export interface ValidationResult {
+  valid: boolean;
+  errors: QueryIssue[];
+  warnings: QueryIssue[];
+  capabilities_required: string[];
+  referenced_entities: string[];
+  referenced_fields: string[];
+  referenced_relationships: string[];
+  parameters: string[];
+  complexity: Complexity;
+  normalized_query: QueryDocument;
+  fingerprint: string;
+}
+export interface SavedQuery {
+  id: string;
+  name: string;
+  description: string | null;
+  connection_id: string;
+  owner_user_id: string;
+  document: QueryDocument;
+  schema_version: string;
+  status: string;
+  validation_status: string;
+  validation_errors: QueryIssue[];
+  validation_warnings: QueryIssue[];
+  fingerprint: string | null;
+  complexity: Complexity | null;
+  revision: number;
+  last_validated_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface SavedQueryList {
+  items: SavedQuery[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+export interface CompilationParameter {
+  source: string;
+  data_type: string;
+  sensitive: boolean;
+  parameter_id: string | null;
+  has_value: boolean;
+}
+export interface CompilationMessage {
+  code: string;
+  message: string;
+}
+export interface CompilationResult {
+  id: string | null;
+  success: boolean;
+  engine: string;
+  provider: string;
+  server_version: string | null;
+  dialect: string;
+  compiler_version: string;
+  sql: string;
+  parameters: Record<string, CompilationParameter>;
+  warnings: CompilationMessage[];
+  errors: CompilationMessage[];
+  capabilities_used: string[];
+  referenced_entities: string[];
+  referenced_fields: string[];
+  referenced_relationships: string[];
+  query_fingerprint: string;
+  compilation_fingerprint: string;
+  complexity: Complexity;
+  executed: false;
+}
+export interface CompilerCapabilities {
+  connection_id: string;
+  engine: string;
+  provider: string;
+  server_version: string | null;
+  compiler_version: string;
+  capabilities: Record<string, boolean>;
+  supported_features: string[];
+  warnings: CompilationMessage[];
+}
+export interface CompilationHistoryItem {
+  id: string;
+  saved_query_id: string | null;
+  query_revision: number | null;
+  compilation_fingerprint: string;
+  compiler_version: string;
+  engine: string;
+  provider: string;
+  server_version: string | null;
+  status: string;
+  duration_ms: number;
+  compiled_at: string;
+}

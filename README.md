@@ -10,6 +10,9 @@ servicios; consulta [`docs/BACKEND_DOCKER_PORTABILITY.md`](docs/BACKEND_DOCKER_P
 La Fase 13 incorpora la base visual reutilizable del frontend; tokens,
 componentes, accesibilidad y convenciones se documentan en
 [`docs/FRONTEND_DESIGN_SYSTEM.md`](docs/FRONTEND_DESIGN_SYSTEM.md).
+La organización feature-first, reglas de imports, APIs, hooks y formato del
+frontend se documentan en
+[`docs/FRONTEND_ARCHITECTURE.md`](docs/FRONTEND_ARCHITECTURE.md).
 
 ## Alcance actual
 

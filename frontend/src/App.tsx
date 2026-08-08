@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
 
-import { AppLayout } from "./layouts/AppLayout";
-import {
-  checkBackendHealthOnce,
-  type BackendStatusValue,
-} from "./services/health";
+import { AppLayout } from "./app/layout/AppLayout";
+import { checkBackendHealthOnce, type BackendStatusValue } from "./shared/api/health";
 
 export function App() {
-  const [backendStatus, setBackendStatus] =
-    useState<BackendStatusValue>("checking");
+  const [backendStatus, setBackendStatus] = useState<BackendStatusValue>("checking");
 
   useEffect(() => {
     let isActive = true;

@@ -1,5 +1,83 @@
 import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { cx } from "./utils";
-export interface TabItem { content: ReactNode; disabled?: boolean; id: string; label: ReactNode; }
-interface TabsProps { activeId: string; label: string; onChange: (id: string) => void; tabs: TabItem[]; }
-export function Tabs({ activeId, label, onChange, tabs }: TabsProps) { const baseId = useId(); const refs = useRef<Array<HTMLButtonElement | null>>([]); const move = (event: KeyboardEvent, current: number) => { const available = tabs.map((tab, index) => ({ tab, index })).filter(({ tab }) => !tab.disabled); const at = available.findIndex(({ index }) => index === current); let next = at; if (event.key === "ArrowRight") next = (at + 1) % available.length; else if (event.key === "ArrowLeft") next = (at - 1 + available.length) % available.length; else if (event.key === "Home") next = 0; else if (event.key === "End") next = available.length - 1; else return; event.preventDefault(); const target = available[next]; if (target) { refs.current[target.index]?.focus(); onChange(target.tab.id); } }; const active = tabs.find((tab) => tab.id === activeId); return <div><div aria-label={label} className="flex overflow-x-auto border-b border-border" role="tablist">{tabs.map((tab, index) => <button aria-controls={`${baseId}-${tab.id}-panel`} aria-selected={tab.id === activeId} className={cx("min-h-10 whitespace-nowrap border-b-2 px-4 text-sm font-semibold", tab.id === activeId ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground")} disabled={tab.disabled} id={`${baseId}-${tab.id}-tab`} key={tab.id} onClick={() => { onChange(tab.id); }} onKeyDown={(event) => { move(event, index); }} ref={(node) => { refs.current[index] = node; }} role="tab" tabIndex={tab.id === activeId ? 0 : -1}>{tab.label}</button>)}</div>{active ? <div aria-labelledby={`${baseId}-${active.id}-tab`} className="py-4" id={`${baseId}-${active.id}-panel`} role="tabpanel">{active.content}</div> : null}</div>; }
+export interface TabItem {
+  content: ReactNode;
+  disabled?: boolean;
+  id: string;
+  label: ReactNode;
+}
+interface TabsProps {
+  activeId: string;
+  label: string;
+  onChange: (id: string) => void;
+  tabs: TabItem[];
+}
+export function Tabs({ activeId, label, onChange, tabs }: TabsProps) {
+  const baseId = useId();
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+  const move = (event: KeyboardEvent, current: number) => {
+    const available = tabs.map((tab, index) => ({ tab, index })).filter(({ tab }) => !tab.disabled);
+    const at = available.findIndex(({ index }) => index === current);
+    let next = at;
+    if (event.key === "ArrowRight") next = (at + 1) % available.length;
+    else if (event.key === "ArrowLeft") next = (at - 1 + available.length) % available.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = available.length - 1;
+    else return;
+    event.preventDefault();
+    const target = available[next];
+    if (target) {
+      refs.current[target.index]?.focus();
+      onChange(target.tab.id);
+    }
+  };
+  const active = tabs.find((tab) => tab.id === activeId);
+  return (
+    <div>
+      <div
+        aria-label={label}
+        className="flex overflow-x-auto border-b border-border"
+        role="tablist"
+      >
+        {tabs.map((tab, index) => (
+          <button
+            aria-controls={`${baseId}-${tab.id}-panel`}
+            aria-selected={tab.id === activeId}
+            className={cx(
+              "min-h-10 whitespace-nowrap border-b-2 px-4 text-sm font-semibold",
+              tab.id === activeId
+                ? "border-primary text-primary"
+                : "border-transparent text-muted hover:text-foreground",
+            )}
+            disabled={tab.disabled}
+            id={`${baseId}-${tab.id}-tab`}
+            key={tab.id}
+            onClick={() => {
+              onChange(tab.id);
+            }}
+            onKeyDown={(event) => {
+              move(event, index);
+            }}
+            ref={(node) => {
+              refs.current[index] = node;
+            }}
+            role="tab"
+            tabIndex={tab.id === activeId ? 0 : -1}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      {active ? (
+        <div
+          aria-labelledby={`${baseId}-${active.id}-tab`}
+          className="py-4"
+          id={`${baseId}-${active.id}-panel`}
+          role="tabpanel"
+        >
+          {active.content}
+        </div>
+      ) : null}
+    </div>
+  );
+}

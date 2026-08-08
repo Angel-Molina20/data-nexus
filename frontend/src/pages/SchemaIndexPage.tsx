@@ -6,7 +6,7 @@ import { EmptyState } from "../components/feedback/EmptyState";
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
 import { PageSection } from "../components/layout/PageSection";
-import { listConnections } from "../services/connections";
+import { listConnections } from "../features/connections/api/connectionsApi";
 
 export function SchemaIndexPage() {
   const query = useQuery({
@@ -21,7 +21,9 @@ export function SchemaIndexPage() {
       />
       <PageSection>
         {query.isPending ? <p className="state-message">Cargando conexiones…</p> : null}
-        {query.isError ? <p className="alert-error">No fue posible cargar las conexiones.</p> : null}
+        {query.isError ? (
+          <p className="alert-error">No fue posible cargar las conexiones.</p>
+        ) : null}
         {query.data?.items.length === 0 ? (
           <EmptyState
             icon={Database}

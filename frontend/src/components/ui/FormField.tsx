@@ -20,7 +20,16 @@ interface FormFieldProps {
   required?: boolean;
 }
 
-export function FormField({ children, className, description, error, helperText, id, label, required = false }: FormFieldProps) {
+export function FormField({
+  children,
+  className,
+  description,
+  error,
+  helperText,
+  id,
+  label,
+  required = false,
+}: FormFieldProps) {
   const generatedId = useId();
   const fieldId = id ?? `field-${generatedId.replaceAll(":", "")}`;
   const helperId = description || helperText ? `${fieldId}-help` : undefined;
@@ -28,11 +37,32 @@ export function FormField({ children, className, description, error, helperText,
   const describedBy = [helperId, errorId].filter(Boolean).join(" ") || undefined;
   return (
     <div className={cx("grid gap-1.5", className)}>
-      {label ? <label className="text-label text-foreground-secondary" htmlFor={fieldId}>{label}{required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}</label> : null}
-      {description ? <p className="text-caption text-muted" id={helperId}>{description}</p> : null}
+      {label ? (
+        <label className="text-label text-foreground-secondary" htmlFor={fieldId}>
+          {label}
+          {required ? (
+            <span aria-hidden="true" className="ml-1 text-danger">
+              *
+            </span>
+          ) : null}
+        </label>
+      ) : null}
+      {description ? (
+        <p className="text-caption text-muted" id={helperId}>
+          {description}
+        </p>
+      ) : null}
       {children({ describedBy, errorId, fieldId, helperId })}
-      {!description && helperText ? <p className="text-caption text-muted" id={helperId}>{helperText}</p> : null}
-      {error ? <p className="text-caption font-medium text-danger" id={errorId} role="alert">{error}</p> : null}
+      {!description && helperText ? (
+        <p className="text-caption text-muted" id={helperId}>
+          {helperText}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="text-caption font-medium text-danger" id={errorId} role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

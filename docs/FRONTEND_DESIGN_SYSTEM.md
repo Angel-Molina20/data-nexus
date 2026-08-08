@@ -128,10 +128,14 @@ estado solo mediante color.
   para detalles internos (por ejemplo, fondos suaves de severidad).
 - No convertir cada bloque en Card. Usar `Panel` para herramientas con scroll y
   secciones planas cuando la agrupación ya es evidente.
+- Las páginas componen componentes de feature; la coordinación de estado/API se
+  encapsula en hooks. Consulta `docs/FRONTEND_ARCHITECTURE.md`.
+- Prettier es la fuente de verdad del formato. No comprimir JSX manualmente.
 - Ejecutar validaciones exclusivamente en Docker:
 
 ```bash
 docker compose exec -T frontend pnpm lint
+docker compose exec -T frontend pnpm format:check
 docker compose exec -T frontend pnpm typecheck
 docker compose exec -T frontend pnpm test
 docker compose exec -T frontend pnpm build

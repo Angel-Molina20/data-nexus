@@ -1,7 +1,7 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–12 están completadas; la rama de
-trabajo actual corresponde a la **Fase 13**, sistema de diseño y base visual del
+Actualizado: 8 de agosto de 2026. Las Fases 0–13 están completadas; la rama de
+trabajo actual corresponde a la **Fase 14**, reestructuración y legibilidad del
 frontend.
 
 ## 1. Objetivo general
@@ -586,3 +586,43 @@ Estado: **completada el 8 de agosto de 2026**.
 - Límites: no se rediseñaron login, dashboard, navegación funcional ni
   constructor; la migración de controles específicos de cada feature queda para
   sus fases visuales correspondientes.
+
+## 14. Fase 14 — reestructuración y legibilidad del frontend
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- `app` separa router, providers y layout raíz. `shared/api` contiene el cliente
+  HTTP y health sin dependencias hacia features.
+- Las APIs globales de `services/` se movieron a `features/*/api`; sus contratos
+  y URLs no cambiaron.
+- Conexiones separa `useConnectionsPage`, filtros y tabla. Reportes separa hook
+  de listado, filtros, lista, modelo de borrador, hook de editor, formulario y
+  editor de parámetros.
+- `ReportEditorPage` dejó de coordinar diez estados independientes; utiliza un
+  único `ReportDraft` y delega inicialización, transformación y persistencia.
+- `shared/utils/formatters.ts` centraliza fecha/hora y tamaño de archivo usados
+  entre conexiones y reportes.
+- `QueryBuilderPage` solo carga el borrador. El controller hook encapsula API,
+  reducer, efectos, shortcuts, validación, compilación y conflicto; el workspace
+  compone catálogo, canvas, inspector, panel inferior y ejecución.
+- El conflicto de revisión reutiliza el Modal accesible de Fase 13.
+- Prettier 3.6.2 se añadió con scripts `format` y `format:check`; se aplicó a todo
+  `src` y configuración TypeScript/Vite. No se añadió estado global.
+- No hay `any` productivo ni casts dobles. Permanecen excepciones ESLint
+  justificadas para expresiones recursivas validadas por backend y proyección de
+  nodos React Flow.
+- Deuda principal: `QueryInspectorPanel.tsx` conserva en un solo archivo los
+  editores independientes de campos, filtros, agrupación, orden, parámetros y
+  UNION. Está funcionalmente separado, pero debe dividirse físicamente en una
+  iteración posterior sin mezclarla con su rediseño visual.
+- Arquitectura y reglas: `docs/FRONTEND_ARCHITECTURE.md`. Sistema visual:
+  `docs/FRONTEND_DESIGN_SYSTEM.md`.
+- Validación final Docker: `format:check`, ESLint, TypeScript estricto, 34
+  pruebas Vitest y build Vite correctos; frontend y resto del stack healthy.
+- Los tres E2E existentes aprobaron con Chrome del host: ejecución,
+  paginación/reejecución, timeout, preview y exportaciones CSV/XLSX/PDF. El
+  binario Playwright descargado dentro del contenedor no puede ejecutarse sobre
+  Alpine/musl porque es una build Ubuntu/glibc; esta limitación de la imagen E2E
+  queda pendiente y no afectó las validaciones obligatorias dentro de Docker.
+- El build conserva el aviso no bloqueante del chunk principal de 805.33 kB. La
+  optimización/code splitting corresponde a la fase de rendimiento.

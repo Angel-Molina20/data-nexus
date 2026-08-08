@@ -5,10 +5,10 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { AuthContext } from "../features/auth/context";
-import { login } from "../services/auth";
+import { login } from "../features/auth/api/authApi";
 import { LoginPage } from "./LoginPage";
 
-vi.mock("../services/auth", () => ({ login: vi.fn() }));
+vi.mock("../features/auth/api/authApi", () => ({ login: vi.fn() }));
 
 describe("LoginPage", () => {
   it("uses accessible credentials fields and a generic authentication error", async () => {
@@ -16,8 +16,12 @@ describe("LoginPage", () => {
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
-        <AuthContext.Provider value={{ user: null, loading: false, logout: vi.fn(), hasPermission: () => false }}>
-          <MemoryRouter><LoginPage /></MemoryRouter>
+        <AuthContext.Provider
+          value={{ user: null, loading: false, logout: vi.fn(), hasPermission: () => false }}
+        >
+          <MemoryRouter>
+            <LoginPage />
+          </MemoryRouter>
         </AuthContext.Provider>
       </QueryClientProvider>,
     );
@@ -25,7 +29,9 @@ describe("LoginPage", () => {
     await user.type(screen.getByLabelText("Correo"), "user@example.com");
     await user.type(screen.getByLabelText("Contraseña"), "invalid-password");
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
-    expect(await screen.findByText("Las credenciales ingresadas no son válidas.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Las credenciales ingresadas no son válidas."),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/driver detail/)).not.toBeInTheDocument();
   });
 });

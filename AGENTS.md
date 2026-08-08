@@ -168,6 +168,10 @@ Las relaciones inferidas deben mostrarse como sugerencias y requerir confirmaci�
 * No ejecutar npm install ni pnpm install en el host.
 * No versionar node_modules ni depender de dependencias instaladas en el host.
 * Mantener el flujo Docker portable entre Linux, Windows y WSL2.
+* Mantener arquitectura feature-first: páginas de composición, APIs y hooks junto a su dominio.
+* No realizar llamadas HTTP desde componentes presentacionales; reutilizar el cliente compartido.
+* Reutilizar el sistema de diseño y evitar componentes o páginas monolíticas.
+* Ejecutar format:check, lint, typecheck y tests frontend en Docker antes de finalizar.
 
 ## Diseño visual
 

@@ -83,10 +83,7 @@ export function HomePage() {
         >
           <div className="divide-y divide-slate-100">
             {dashboardActivities.map((activity) => (
-              <div
-                className="flex items-start gap-3 py-4 first:pt-1 last:pb-1"
-                key={activity.id}
-              >
+              <div className="flex items-start gap-3 py-4 first:pt-1 last:pb-1" key={activity.id}>
                 <span className="mt-0.5 rounded-lg bg-slate-100 p-2 text-slate-500">
                   <Clock3 aria-hidden="true" className="size-4" />
                 </span>

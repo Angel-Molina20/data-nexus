@@ -10,13 +10,7 @@ interface ComingSoonProps {
   title: string;
 }
 
-export function ComingSoon({
-  description,
-  detail,
-  icon: Icon,
-  phase,
-  title,
-}: ComingSoonProps) {
+export function ComingSoon({ description, detail, icon: Icon, phase, title }: ComingSoonProps) {
   return (
     <div className="flex min-h-[420px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
       <span className="rounded-2xl bg-blue-50 p-4 text-blue-600">
