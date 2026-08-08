@@ -13,6 +13,7 @@ from app.api.routers.auth import router as auth_router
 from app.api.routers.compilations import router as compiler_router
 from app.api.routers.compilations import saved_router as query_compilations_router
 from app.api.routers.connections import router as connections_router
+from app.api.routers.dashboard import router as dashboard_router
 from app.api.routers.executions import router as executions_router
 from app.api.routers.health import router as health_router
 from app.api.routers.queries import model_router as query_model_router
@@ -68,6 +69,7 @@ app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(roles_router, prefix=settings.API_V1_PREFIX)
 app.include_router(connections_router, prefix=settings.API_V1_PREFIX)
+app.include_router(dashboard_router, prefix=settings.API_V1_PREFIX)
 app.include_router(access_router, prefix=settings.API_V1_PREFIX)
 app.include_router(schema_router, prefix=settings.API_V1_PREFIX)
 app.include_router(relationships_router, prefix=settings.API_V1_PREFIX)

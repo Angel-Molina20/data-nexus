@@ -249,6 +249,13 @@ textarea:disabled {
     @apply text-xl font-bold tabular-nums text-foreground;
   }
 
+  .dashboard-stat-card {
+    @apply border-border bg-surface shadow-sm;
+  }
+  .dashboard-resource-row {
+    @apply flex min-h-20 min-w-0 items-center gap-3 px-5 py-4 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px];
+  }
+
   .auth-shell {
     min-height: 100vh;
     min-height: 100dvh;
