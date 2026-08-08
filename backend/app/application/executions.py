@@ -1,26 +1,27 @@
 import asyncio
 import copy
-import math
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
-from datetime import time as time_value
-from decimal import Decimal, InvalidOperation
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas.executions import (
     ExecutionColumnResponse,
-    ExecutionHistoryResponse,
     ExecutionMetadataResponse,
-    ExecutionResponse,
     QueryExecutionRequest,
     QueryExecutionResultResponse,
 )
 from app.application.compilations import CompilerContext
 from app.application.queries import SavedQueryService, ValidateUniversalQueryService
+from app.application.query_execution.pagination import paginate_query
+from app.application.query_execution.parameters import resolve_parameters
+from app.application.query_execution.responses import (
+    execution_response,
+    safe_execution_message,
+)
 from app.core.config import Settings
 from app.db.models.database_connection import DatabaseConnection
 from app.db.models.execution import QueryExecution
@@ -39,7 +40,7 @@ from app.domain.query_model.analysis import (
     normalized_document,
     query_fingerprint,
 )
-from app.domain.query_model.ast import QueryParameterDefinition, UniversalQuery
+from app.domain.query_model.ast import UniversalQuery
 from app.infrastructure.adapters.active_executions import ActiveExecutionRegistry
 from app.infrastructure.adapters.registry import AdapterRegistry
 from app.infrastructure.repositories.executions import QueryExecutionRepository
@@ -55,33 +56,6 @@ class ExecutionContext:
     encryption: CredentialEncryption
     active: ActiveExecutionRegistry
     settings: Settings
-
-
-def execution_response(model: QueryExecution) -> ExecutionResponse:
-    total_pages = (
-        math.ceil(model.total_rows / model.page_size)
-        if model.total_rows is not None and model.page_size
-        else None
-    )
-    return ExecutionResponse(
-        id=model.id,
-        connection_id=model.connection_id,
-        query_id=model.query_id,
-        query_revision=model.query_revision,
-        status=model.status,
-        started_at=model.started_at,
-        finished_at=model.finished_at,
-        duration_ms=model.duration_ms,
-        row_count=model.row_count,
-        returned_row_count=model.returned_row_count,
-        truncated=model.truncated,
-        page=model.page,
-        page_size=model.page_size,
-        total_rows=model.total_rows,
-        total_pages=total_pages,
-        error_code=model.error_code,
-        error_message=model.error_message,
-    )
 
 
 class QueryExecutionService:
@@ -120,7 +94,7 @@ class QueryExecutionService:
             raise PublicError(
                 "QUERY_AST_INVALID", "La consulta debe ser válida antes de ejecutarse.", 400
             )
-        values = _resolve_parameters(payload.ast.parameters, payload.parameters)
+        values = resolve_parameters(payload.ast.parameters, payload.parameters)
         page_size = min(
             payload.pagination.page_size or self.context.settings.QUERY_EXECUTION_DEFAULT_PAGE_SIZE,
             self.context.settings.QUERY_EXECUTION_MAX_PAGE_SIZE,
@@ -163,7 +137,7 @@ class QueryExecutionService:
         await self.context.session.commit()
         warnings: list[str] = []
         try:
-            paged_document = _paginate(
+            paged_document = paginate_query(
                 payload.ast, page, page_size, self.context.settings.QUERY_EXECUTION_MAX_ROWS
             )
             compiled = await self._compile(paged_document, connection, user_id, values)
@@ -228,11 +202,9 @@ class QueryExecutionService:
                 if error.code == "QUERY_EXECUTION_CANCELLED"
                 else ExecutionStatus.FAILED
             )
-            await self._fail(
-                model, status, error.code, _safe_execution_message(error.code), started
-            )
+            await self._fail(model, status, error.code, safe_execution_message(error.code), started)
             raise PublicError(
-                error.code, _safe_execution_message(error.code), error.status_code
+                error.code, safe_execution_message(error.code), error.status_code
             ) from error
         except Exception as error:
             await self._fail(
@@ -322,87 +294,3 @@ class QueryExecutionService:
         model.error_code = code
         model.error_message = message
         await self.context.session.commit()
-
-
-def _paginate(document: UniversalQuery, page: int, page_size: int, max_rows: int) -> UniversalQuery:
-    result = copy.deepcopy(document)
-    logical_limit = result.query.limit
-    window_offset = (page - 1) * page_size
-    remaining = max_rows - window_offset
-    if logical_limit is not None:
-        remaining = min(remaining, max(0, logical_limit - window_offset))
-    result.query.offset = (result.query.offset or 0) + window_offset
-    result.query.limit = min(page_size + 1, max(0, remaining))
-    return result
-
-
-def _resolve_parameters(
-    definitions: list[QueryParameterDefinition], supplied: dict[str, Any]
-) -> dict[str, object]:
-    declared = {item.parameter_id: item for item in definitions}
-    unknown = set(supplied) - set(declared)
-    if unknown:
-        raise PublicError("QUERY_PARAMETER_UNKNOWN", "Se enviaron parámetros no declarados.", 400)
-    result: dict[str, object] = {}
-    for key, definition in declared.items():
-        value = supplied.get(key, definition.default_value)
-        if value is None:
-            if definition.required and not definition.nullable:
-                raise PublicError(
-                    "QUERY_PARAMETER_MISSING", f"Falta el parámetro {definition.label}.", 400
-                )
-            result[key] = None
-            continue
-        try:
-            result[key] = _coerce_parameter(definition, value)
-        except (ValueError, TypeError, InvalidOperation) as error:
-            raise PublicError(
-                "QUERY_PARAMETER_INVALID", f"El parámetro {definition.label} no es válido.", 400
-            ) from error
-    return result
-
-
-def _coerce_parameter(definition: QueryParameterDefinition, value: Any) -> object:
-    data_type = definition.data_type
-    if data_type == "string" or data_type == "enum" or data_type == "uuid":
-        converted: object = str(value)
-    elif data_type == "integer":
-        if isinstance(value, bool):
-            raise ValueError
-        converted = int(value)
-    elif data_type in {"decimal", "float"}:
-        converted = Decimal(str(value)) if data_type == "decimal" else float(value)
-    elif data_type == "boolean":
-        if not isinstance(value, bool):
-            raise ValueError
-        converted = value
-    elif data_type == "date":
-        converted = date.fromisoformat(str(value))
-    elif data_type == "time":
-        converted = time_value.fromisoformat(str(value))
-    elif data_type == "datetime":
-        converted = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    elif data_type == "list":
-        if not isinstance(value, list):
-            raise ValueError
-        converted = value
-    else:
-        converted = value
-    if definition.allowed_values is not None and converted not in definition.allowed_values:
-        raise ValueError
-    return converted
-
-
-def _safe_execution_message(code: str) -> str:
-    return {
-        "QUERY_NOT_READ_ONLY": "Solo se permiten consultas de lectura.",
-        "QUERY_EXECUTION_CANCELLED": "La ejecución fue cancelada.",
-    }.get(code, "No fue posible ejecutar la consulta.")
-
-
-def history_response(
-    models: list[QueryExecution], page: int, page_size: int
-) -> ExecutionHistoryResponse:
-    return ExecutionHistoryResponse(
-        items=[execution_response(item) for item in models], page=page, page_size=page_size
-    )

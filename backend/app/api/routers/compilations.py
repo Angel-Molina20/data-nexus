@@ -12,10 +12,13 @@ from app.api.dependencies import (
 )
 from app.api.schemas.compilations import (
     CompilationHistoryResponse,
+    CompilationMessageResponse,
     CompilationRequest,
     CompilationResponse,
     CompilerCapabilitiesResponse,
+    ParameterMetadataResponse,
 )
+from app.api.schemas.queries import ComplexityResponse
 from app.application.auth import AuthorizationService
 from app.application.compilations import (
     CompileSavedQueryService,
@@ -122,12 +125,6 @@ async def get_compilation(
     model = await context.compilations.get(compilation_id)
     if model is None or model.saved_query_id != query_id:
         raise PublicError("QUERY_COMPILATION_STALE", "La compilación no existe.", 404)
-    from app.api.schemas.compilations import (
-        CompilationMessageResponse,
-        ParameterMetadataResponse,
-    )
-    from app.api.schemas.queries import ComplexityResponse
-
     return CompilationResponse(
         id=model.id,
         success=model.status == "success",

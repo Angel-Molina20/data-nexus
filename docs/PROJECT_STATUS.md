@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–13 están completadas; la rama de
-trabajo actual corresponde a la **Fase 14**, reestructuración y legibilidad del
-frontend.
+Actualizado: 8 de agosto de 2026. Las Fases 0–14 están completadas; la rama de
+trabajo actual corresponde a la **Fase 15**, arquitectura y legibilidad del
+backend.
 
 ## 1. Objetivo general
 
@@ -626,3 +626,44 @@ Estado: **completada el 8 de agosto de 2026**.
   queda pendiente y no afectó las validaciones obligatorias dentro de Docker.
 - El build conserva el aviso no bloqueante del chunk principal de 805.33 kB. La
   optimización/code splitting corresponde a la fase de rendimiento.
+
+## 15. Fase 15 — arquitectura y legibilidad del backend
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- La auditoría encontró como mayores concentraciones `SchemaRepository` (1022
+  líneas), `application/relationships.py` (884), compilador MySQL (565), adaptador
+  MySQL (531), repositorio semántico (517), schema application (484), reportes
+  (473), ejecuciones (408) y dependencias FastAPI (292).
+- `application/query_execution` separa paginación inmutable, coerción de
+  parámetros y serializers de ejecución. `executions.py` bajó de 408 a 296
+  líneas conservando compilación, timeout, cancelación y lifecycle.
+- El router de reportes dejó de consultar directamente `SavedQuery` y de
+  implementar autorización, expiración, existencia y eliminación de exports.
+  Esas reglas viven en `ReportService` y `ReportExportAccessService`; el router
+  bajó de 325 a 271 líneas y conserva únicamente streaming como responsabilidad
+  HTTP.
+- La ejecución de preview/export, recolección paginada, presentación de columnas
+  y cleanup de fallos se movió a `report_execution.py`; `reports.py` bajó de 473
+  a 316 líneas y separa CRUD/transiciones de la ejecución bloqueante de archivos.
+- `api/context_factories.py` centraliza composición de adaptadores, repositorios,
+  compilador, ejecución y reportes. `api/dependencies.py` bajó de 292 a 208
+  líneas y se concentra en FastAPI, sesión, cookies, CSRF y policies de request.
+- Las transformaciones puras de sincronización se movieron a
+  `repositories/schema_snapshots.py`; `SchemaRepository` bajó de 1022 a 932
+  líneas sin modificar persistencia ni transacciones.
+- `_audit_call` usa un genérico Python 3.12 y eliminó cinco ignores de tipos. Los
+  handlers ajustaron su contrato para eliminar dos ignores del bootstrap y el
+  helper de compilación de tests recibió retorno explícito.
+- No cambiaron rutas, métodos, payloads, responses, códigos públicos, tablas ni
+  migraciones. Ruff format continúa como único formateador; Ruff administra
+  imports y MyPy permanece estricto.
+- Documentación: `docs/BACKEND_ARCHITECTURE.md` y
+  `docs/BACKEND_CODE_STYLE.md`.
+- Validación final: Ruff format/check correctos, MyPy estricto correcto en 148
+  archivos, 95 pruebas Pytest aprobadas, Alembic en `20260807_0011 (head)`, build
+  Docker correcto y stack completo saludable. Health respondió 200, auth sin
+  sesión conservó 401 y OpenAPI respondió 200.
+- Deuda revisada y no fragmentada artificialmente: relaciones y repositorios de
+  schema/semántica siguen extensos; el compilador y adaptador MySQL son cohesivos
+  pero requieren extracción futura acompañada de pruebas específicas.

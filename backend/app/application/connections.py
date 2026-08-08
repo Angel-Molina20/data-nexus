@@ -1,5 +1,6 @@
 import time
 import uuid
+from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -103,15 +104,15 @@ async def _inspect(
     )
 
 
-async def _audit_call(
+async def _audit_call[OperationResult](
     context: ConnectionContext,
     action: str,
-    operation: object,
+    operation: Awaitable[OperationResult],
     connection_id: uuid.UUID | None = None,
-) -> object:
+) -> OperationResult:
     started = time.monotonic()
     try:
-        result = await operation  # type: ignore[misc]
+        result = await operation
     except PublicError as error:
         await context.audit.record(
             action=action,
@@ -137,7 +138,7 @@ class TestConnectionService:
         self.context = context
 
     async def execute(self, request: ConnectionTestRequest) -> ConnectionTestResponse:
-        return await _audit_call(self.context, "connection.test", _inspect(self.context, request))  # type: ignore[return-value]
+        return await _audit_call(self.context, "connection.test", _inspect(self.context, request))
 
 
 class CreateConnectionService:
@@ -181,7 +182,7 @@ class CreateConnectionService:
             await self.context.connections.create(model)
             return to_detail(model)
 
-        return await _audit_call(self.context, "connection.create", operation())  # type: ignore[return-value]
+        return await _audit_call(self.context, "connection.create", operation())
 
 
 class ListConnectionsService:
@@ -265,7 +266,7 @@ class UpdateConnectionService:
             await self.context.session.refresh(model)
             return to_detail(model)
 
-        return await _audit_call(self.context, "connection.update", operation(), connection_id)  # type: ignore[return-value]
+        return await _audit_call(self.context, "connection.update", operation(), connection_id)
 
 
 class DeleteConnectionService:
@@ -318,7 +319,7 @@ class RetestConnectionService:
             await self.context.session.flush()
             return tested
 
-        return await _audit_call(self.context, "connection.retest", operation(), connection_id)  # type: ignore[return-value]
+        return await _audit_call(self.context, "connection.retest", operation(), connection_id)
 
 
 async def require_connection(

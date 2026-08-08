@@ -1,30 +1,20 @@
-import asyncio
 import re
-import time
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.schemas.executions import (
-    ExecutionColumnResponse,
-    ExecutionOptionsRequest,
-    ExecutionPaginationRequest,
-    QueryExecutionRequest,
-    QueryExecutionResultResponse,
-)
 from app.api.schemas.reports import (
     ReportCreateRequest,
     ReportExportResponse,
-    ReportPreviewResponse,
+    ReportListResponse,
     ReportResponse,
-    ReportRunRequest,
     ReportUpdateRequest,
 )
 from app.application.auth import AuthorizationService, SessionPrincipal
-from app.application.executions import ExecutionContext, QueryExecutionService
+from app.application.executions import ExecutionContext
 from app.application.queries import SavedQueryService, ValidateUniversalQueryService
 from app.core.config import Settings
 from app.db.models.query import SavedQuery
@@ -32,7 +22,7 @@ from app.db.models.report import Report, ReportExport
 from app.domain.connections.errors import PublicError
 from app.domain.query_model.ast import UniversalQuery
 from app.domain.reports.configuration import ReportConfiguration
-from app.infrastructure.exporters.common import format_value, visible_columns
+from app.infrastructure.exporters.common import visible_columns
 from app.infrastructure.exporters.registry import ReportExporterRegistry
 from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.auth import AuthRepository
@@ -154,6 +144,52 @@ class ReportService:
             raise PublicError("REPORT_NOT_FOUND", "El reporte no existe.", 404)
         return model
 
+    async def get_response(self, report_id: uuid.UUID, user_id: uuid.UUID) -> ReportResponse:
+        model = await self.get(report_id, user_id)
+        current_query = await self.context.session.get(SavedQuery, model.query_id)
+        return report_response(
+            model,
+            current_revision=current_query.revision if current_query else None,
+        )
+
+    async def list(
+        self,
+        user_id: uuid.UUID,
+        *,
+        page: int,
+        page_size: int,
+        status: str | None,
+        query_id: uuid.UUID | None,
+        connection_id: uuid.UUID | None,
+        search: str | None,
+        include_archived: bool,
+    ) -> ReportListResponse:
+        items, total = await self.context.reports.list(
+            user_id,
+            page=page,
+            page_size=page_size,
+            status=status,
+            query_id=query_id,
+            connection_id=connection_id,
+            search=search,
+            include_archived=include_archived,
+        )
+        query_ids = {item.query_id for item in items}
+        revisions = {
+            query_id: query.revision
+            for query_id in query_ids
+            if (query := await self.context.session.get(SavedQuery, query_id)) is not None
+        }
+        return ReportListResponse(
+            items=[
+                report_response(item, current_revision=revisions.get(item.query_id))
+                for item in items
+            ],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
+
     async def update(
         self, report_id: uuid.UUID, request: ReportUpdateRequest, principal: SessionPrincipal
     ) -> ReportResponse:
@@ -258,199 +294,6 @@ class ReportService:
                 f"Columnas no disponibles en la revisión: {', '.join(unknown)}.",
                 422,
             )
-
-
-class ReportExecutionService:
-    def __init__(self, context: ReportContext) -> None:
-        self.context = context
-
-    async def preview(
-        self, model: Report, request: ReportRunRequest, principal: SessionPrincipal
-    ) -> ReportPreviewResponse:
-        if model.status == "archived":
-            raise PublicError("REPORT_ARCHIVED", "El reporte está archivado.", 409)
-        await AuthorizationService(self.context.auth).require_connection_access(
-            principal, model.connection_id, "analyst"
-        )
-        size = min(request.page_size or 25, self.context.settings.REPORT_PREVIEW_MAX_ROWS)
-        result = await self._page(model, request.parameters, request.page, size, principal)
-        configuration = ReportConfiguration.model_validate(model.configuration_json)
-        columns, rows, warnings = self._present(configuration, result.columns, result.rows)
-        return ReportPreviewResponse(
-            report=report_response(model),
-            execution=result.execution,
-            columns=columns,
-            rows=rows,
-            warnings=[*result.warnings, *warnings],
-        )
-
-    async def export(
-        self,
-        model: Report,
-        format: str,
-        parameters: dict[str, Any],
-        requested_name: str | None,
-        principal: SessionPrincipal,
-    ) -> ReportExportResponse:
-        if model.status != "published":
-            raise PublicError(
-                "REPORT_NOT_PUBLISHED", "Publica el reporte antes de exportarlo.", 409
-            )
-        await AuthorizationService(self.context.auth).require_connection_access(
-            principal, model.connection_id, "analyst"
-        )
-        if (
-            await self.context.exports.active_count(principal.user.id)
-            >= self.context.settings.REPORT_EXPORT_MAX_CONCURRENT_PER_USER
-        ):
-            raise PublicError(
-                "REPORT_EXPORT_CONCURRENCY_LIMIT",
-                "Alcanzaste el límite de exportaciones activas.",
-                429,
-            )
-        exporter = self.context.exporters.get(
-            format, self.context.settings.REPORT_EXPORT_ALLOWED_FORMATS
-        )
-        file_name = safe_file_name(requested_name or model.name, exporter.extension)
-        record = ReportExport(
-            report_id=model.id,
-            query_id=model.query_id,
-            query_revision=model.query_revision,
-            requested_by=principal.user.id,
-            format=format,
-            status="processing",
-            file_name=file_name,
-        )
-        await self.context.exports.add(record)
-        await self.context.session.commit()
-        key: str | None = None
-        started = time.perf_counter()
-        try:
-            configuration = ReportConfiguration.model_validate(model.configuration_json)
-            rows: list[dict[str, Any]] = []
-            columns: list[ExecutionColumnResponse] = []
-            max_rows = min(
-                self.context.settings.REPORT_EXPORT_MAX_ROWS,
-                self.context.settings.QUERY_EXECUTION_MAX_ROWS,
-            )
-            page_size = min(
-                self.context.settings.REPORT_EXPORT_BATCH_SIZE,
-                self.context.settings.QUERY_EXECUTION_MAX_PAGE_SIZE,
-            )
-            page = 1
-            async with asyncio.timeout(self.context.settings.REPORT_EXPORT_TIMEOUT_SECONDS):
-                while len(rows) < max_rows:
-                    result = await self._page(model, parameters, page, page_size, principal)
-                    if not columns:
-                        columns = result.columns
-                    rows.extend(result.rows[: max_rows - len(rows)])
-                    record.execution_id = result.execution.id
-                    if not result.execution.truncated or not result.rows:
-                        break
-                    page += 1
-            _, presented, _ = self._present(configuration, columns, rows)
-            key, path = self.context.storage.allocate(exporter.extension)
-            record.row_count = await asyncio.to_thread(
-                exporter.export, path, configuration, presented
-            )
-            self.context.storage.secure_permissions(path)
-            size = self.context.storage.size(key)
-            if size > self.context.settings.REPORT_EXPORT_MAX_FILE_SIZE_BYTES:
-                raise PublicError(
-                    "REPORT_EXPORT_FILE_TOO_LARGE", "El archivo supera el tamaño permitido.", 400
-                )
-            record.storage_key, record.content_type, record.file_size = (
-                key,
-                exporter.content_type,
-                size,
-            )
-            record.status, record.finished_at = "completed", datetime.now(UTC)
-            record.expires_at = record.finished_at + timedelta(
-                days=self.context.settings.REPORT_EXPORT_RETENTION_DAYS
-            )
-            await self.context.session.commit()
-            await self.context.session.refresh(record)
-            return export_response(record)
-        except TimeoutError as error:
-            await self._fail(
-                record, key, "REPORT_EXPORT_TIMEOUT", "La exportación excedió el tiempo permitido."
-            )
-            raise PublicError(
-                "REPORT_EXPORT_TIMEOUT", "La exportación excedió el tiempo permitido.", 504
-            ) from error
-        except PublicError as error:
-            await self._fail(record, key, error.code, error.message)
-            raise
-        except Exception as error:
-            await self._fail(
-                record, key, "REPORT_EXPORT_FAILED", "No fue posible generar el archivo."
-            )
-            raise PublicError(
-                "REPORT_EXPORT_FAILED", "No fue posible generar el archivo.", 500
-            ) from error
-        finally:
-            _ = round((time.perf_counter() - started) * 1000)
-
-    async def _page(
-        self,
-        model: Report,
-        parameters: dict[str, Any],
-        page: int,
-        page_size: int,
-        principal: SessionPrincipal,
-    ) -> QueryExecutionResultResponse:
-        ast = UniversalQuery.model_validate(model.query_document_json)
-        payload = QueryExecutionRequest(
-            connection_id=model.connection_id,
-            ast=ast,
-            parameters=parameters,
-            pagination=ExecutionPaginationRequest(page=page, page_size=page_size),
-            options=ExecutionOptionsRequest(include_total_count=False, include_compiled_sql=False),
-        )
-        return await QueryExecutionService(self.context.execution).execute(
-            payload, principal.permissions, principal.user.id
-        )
-
-    @staticmethod
-    def _present(
-        configuration: ReportConfiguration,
-        source_columns: list[ExecutionColumnResponse],
-        source_rows: list[dict[str, Any]],
-    ) -> tuple[list[ExecutionColumnResponse], list[dict[str, Any]], list[str]]:
-        available = {item.key: item for item in source_columns}
-        configured = visible_columns(configuration)
-        missing = [item.source_key for item in configured if item.source_key not in available]
-        selected = [item for item in configured if item.source_key in available]
-        if not selected:
-            raise PublicError(
-                "REPORT_QUERY_INCOMPATIBLE",
-                "Las columnas configuradas no existen en el resultado.",
-                409,
-            )
-        columns = [
-            ExecutionColumnResponse(
-                key=item.source_key,
-                label=item.label,
-                data_type=available[item.source_key].data_type,
-                nullable=available[item.source_key].nullable,
-                source=available[item.source_key].source,
-                format=item.format.type,
-            )
-            for item in selected
-        ]
-        rows = [
-            {item.source_key: format_value(row.get(item.source_key), item) for item in selected}
-            for row in source_rows
-        ]
-        warnings = [f"Columnas no disponibles: {', '.join(missing)}"] if missing else []
-        return columns, rows, warnings
-
-    async def _fail(self, record: ReportExport, key: str | None, code: str, message: str) -> None:
-        if key:
-            self.context.storage.delete(key)
-        record.status, record.finished_at = "failed", datetime.now(UTC)
-        record.error_code, record.error_message = code, message
-        await self.context.session.commit()
 
 
 class ExpiredReportExportCleanupService:

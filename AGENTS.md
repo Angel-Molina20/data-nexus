@@ -85,6 +85,10 @@ Debe permitir:
 * Implementar pruebas unitarias y de integración.
 * No utilizar pandas para procesar grandes cantidades de datos completos en memoria.
 * Utilizar procesamiento por bloques cuando sea necesario.
+* Mantener routers limitados a contratos HTTP y delegar reglas a servicios.
+* Encapsular persistencia en repositorios y no usar `HTTPException` fuera de presentación.
+* Usar Ruff format, Ruff check, MyPy y Pytest dentro de Docker antes de cerrar cambios backend.
+* Evitar módulos monolíticos y conservar la dirección `api → application → domain`.
 
 ## Adaptadores
 

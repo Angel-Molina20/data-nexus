@@ -9,7 +9,10 @@ from app.domain.connections.errors import PublicError
 logger = logging.getLogger(__name__)
 
 
-async def public_error_handler(_: Request, error: PublicError) -> JSONResponse:
+async def public_error_handler(_: Request, exception: Exception) -> JSONResponse:
+    if not isinstance(exception, PublicError):
+        raise TypeError("public_error_handler requires PublicError")
+    error = exception
     logger.warning(
         "public_request_error",
         extra={"error_code": error.code},
@@ -20,7 +23,9 @@ async def public_error_handler(_: Request, error: PublicError) -> JSONResponse:
     )
 
 
-async def validation_error_handler(_: Request, __: RequestValidationError) -> JSONResponse:
+async def validation_error_handler(_: Request, exception: Exception) -> JSONResponse:
+    if not isinstance(exception, RequestValidationError):
+        raise TypeError("validation_error_handler requires RequestValidationError")
     return JSONResponse(
         status_code=422,
         content={

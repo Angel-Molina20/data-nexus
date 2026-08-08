@@ -13,6 +13,7 @@ from app.db.models.auth import (
     UserRole,
     UserSession,
 )
+from app.domain.auth.permissions import PERMISSIONS, SYSTEM_ROLES
 
 
 class AuthRepository:
@@ -201,8 +202,6 @@ class AuthRepository:
 
 
 async def seed_rbac(session: AsyncSession) -> None:
-    from app.domain.auth.permissions import PERMISSIONS, SYSTEM_ROLES
-
     permissions: dict[str, Permission] = {}
     for code, (name, resource) in PERMISSIONS.items():
         model = (
