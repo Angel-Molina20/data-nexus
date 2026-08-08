@@ -5,6 +5,8 @@ roadmap inicial está completo hasta la **Fase 10**, con constructor visual,
 ejecución segura y reportes reutilizables exportables a CSV, XLSX y PDF.
 La Fase 11 inicia el segundo roadmap con un frontend reproducible y portable en
 Docker; consulta [`docs/FRONTEND_DOCKER_PORTABILITY.md`](docs/FRONTEND_DOCKER_PORTABILITY.md).
+La Fase 12 extiende el mismo flujo reproducible al backend, migraciones y
+servicios; consulta [`docs/BACKEND_DOCKER_PORTABILITY.md`](docs/BACKEND_DOCKER_PORTABILITY.md).
 
 ## Alcance actual
 
@@ -136,14 +138,9 @@ de calidad en el host.
    En PowerShell usa `Copy-Item .env.example .env`.
 
 2. Revisa los valores ficticios de desarrollo y cámbialos si el entorno lo
-   requiere.
-   Genera una clave Fernet y asígnala a `CREDENTIAL_ENCRYPTION_KEY`:
-
-   ```bash
-   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-   ```
-
-   No reutilices claves de desarrollo en producción. Perder la clave impide
+   requiere. La clave Fernet de ejemplo es pública y solo permite un arranque
+   local descartable. Antes de guardar credenciales reales, genera otra dentro
+   de Docker siguiendo la guía de portabilidad backend. Perder la clave impide
    recuperar las credenciales cifradas.
 3. Construye e inicia los servicios directamente con Docker Compose:
 
@@ -164,6 +161,8 @@ arranque el contenedor inicializa su volumen privado de `node_modules`; nunca se
 debe ejecutar `npm install` ni `pnpm install` en el host.
 Para añadir o quitar paquetes usa `frontend/manage-dependencies.sh` mediante
 `docker compose exec`, como documenta la guía de portabilidad.
+Compose aplica Alembic automáticamente una sola vez antes de iniciar el backend
+y prepara el volumen de exportaciones sin intervención manual.
 
 ## URLs y puertos
 

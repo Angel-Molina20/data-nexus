@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–10 están integradas en `main`; la
-rama de trabajo actual corresponde a la **Fase 11**, portabilidad Docker del
-frontend y entorno reproducible.
+Actualizado: 8 de agosto de 2026. Las Fases 0–11 están completadas; la rama de
+trabajo actual corresponde a la **Fase 12**, portabilidad Docker del backend e
+infraestructura.
 
 ## 1. Objetivo general
 
@@ -21,9 +21,9 @@ PDF.
 ### Backend
 
 - Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 y Alembic.
-- PostgreSQL 17 como base interna para configuración, catálogo, seguridad,
+- PostgreSQL 17.10 como base interna para configuración, catálogo, seguridad,
   borradores y compilaciones.
-- Redis 7.4 para rate limiting distribuido y preparación de trabajo futuro.
+- Redis 7.4.9 para rate limiting distribuido y preparación de trabajo futuro.
 - Arquitectura separada en `domain`, `application`, `infrastructure` y `api`.
 - Repositorios para persistencia y servicios de aplicación; routers delgados.
 - Registro de adaptadores de fuentes y registro de compiladores extensibles.
@@ -46,7 +46,7 @@ PDF.
 ### Infraestructura
 
 Docker Compose levanta servicios separados para frontend, backend, PostgreSQL,
-Redis, MySQL 5.6 y MySQL 8.4. Vite redirige `/api/v1` al backend en desarrollo.
+Redis, MySQL 5.6.51 y MySQL 8.4.10. Vite redirige `/api/v1` al backend en desarrollo.
 MySQL 5.6 usa `linux/amd64`, por lo que puede requerir emulación en hosts ARM.
 
 ## 3. Fases completadas
@@ -233,7 +233,7 @@ paso 9 de la lista histórica de `AGENTS.md`.
 
 ### Backend
 
-- Diez migraciones, desde base inicial hasta `query_executions`.
+- Once migraciones, desde base inicial hasta reportes y exportaciones.
 - Routers para health, auth, usuarios, roles, acceso, conexiones, esquemas,
   relaciones, catálogo semántico, modelo de consultas y compilaciones.
 - La última verificación produjo Ruff correcto, MyPy correcto y **85 pruebas
@@ -255,8 +255,8 @@ paso 9 de la lista histórica de `AGENTS.md`.
 
 ## 7. Fase actual
 
-La **Fase 11** abre el segundo roadmap y se limita a la portabilidad Docker del
-frontend. No altera funcionalidades del producto ni la arquitectura backend.
+La **Fase 12** continúa el segundo roadmap con portabilidad Docker del backend,
+migraciones, servicios y volúmenes, sin alterar funcionalidades del producto.
 
 ## 8. Archivos principales para una nueva sesión
 
@@ -312,17 +312,15 @@ Frontend:
 
 ```bash
 cp .env.example .env
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-make up
-make ps
-make migrate
-make seed-rbac
+docker compose up --build
+docker compose ps -a
 make create-admin
 ```
 
-El comando de Fernet solo genera la clave que debe copiarse a
-`CREDENTIAL_ENCRYPTION_KEY`; no se debe reutilizar una clave de desarrollo en
-producción. `create-admin` solicita la contraseña interactivamente.
+La clave Fernet pública de `.env.example` solo sirve para desarrollo
+descartable y debe reemplazarse antes de guardar credenciales reales. Alembic y
+el seeding RBAC idempotente forman parte del arranque. `create-admin` permanece
+interactivo.
 
 URLs de desarrollo:
 
@@ -496,7 +494,7 @@ Estado: **completada el 8 de agosto de 2026**.
 - Vite usa `backend:8000` en la red Docker. El polling es opt-in mediante
   `VITE_USE_POLLING`; el healthcheck permite la inicialización inicial.
 - `.gitattributes` fuerza LF en scripts y archivos de configuración de texto.
-- Linux se validará en el entorno actual. Windows Docker Desktop y WSL2 son
+- Linux fue validado en el entorno actual. Windows Docker Desktop y WSL2 son
   compatibles por diseño, pendientes de validación manual real.
 - La operación y troubleshooting están en
   `docs/FRONTEND_DOCKER_PORTABILITY.md`.
@@ -507,3 +505,39 @@ Estado: **completada el 8 de agosto de 2026**.
   del contenedor con propietarios incompatibles sobre el bind mount.
 - Windows Docker Desktop y WSL2 no fueron probados realmente; permanecen como
   compatibles por diseño y pendientes de validación manual.
+
+## 12. Fase 12 — portabilidad Docker del backend e infraestructura
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- Python está fijado en 3.12.13 sobre Debian Bookworm slim. El entorno virtual
+  vive en `/opt/venv` y no puede ser ocultado por `./backend:/app`.
+- `requirements.lock` restringe dependencias directas y transitivas; pip,
+  setuptools y wheel también tienen versiones fijas durante el build.
+- El backend corre como `datanexus` no root, con UTF-8 y UTC. Bytecode y caches
+  de Ruff, MyPy y Pytest no se escriben en el bind mount.
+- Compose implementa `postgres healthy → migrations completed → backend`; el
+  backend espera además Redis saludable y storage preparado.
+- El servicio one-shot `migrations` aplica Alembic hasta head una sola vez por
+  arranque. El seeding RBAC del backend continúa siendo idempotente.
+- `report-storage-init` asigna el volumen por nombre de usuario, sin UID/GID
+  hardcodeados. `report_exports` queda `0700` y los exports conservan `0600`.
+- La red ya no tiene nombre global fijo: Compose la aísla por proyecto. El
+  puerto interno backend es 8000 y `BACKEND_HOST_PORT` controla solo el host.
+- `.env.example` puede iniciar el stack sin Python host y contiene únicamente
+  credenciales de desarrollo públicas/ficticias. `DATANEXUS_ENV_FILE` permite
+  seleccionar otro archivo de entorno.
+- Validación limpia en un proyecto aislado: PostgreSQL/Redis/MySQL/storage y
+  frontend sin volúmenes previos, 11 migraciones hasta `20260807_0011`, 29
+  tablas públicas, Redis con 0 claves iniciales y todos los servicios sanos.
+- Validación de calidad: Ruff correcto, MyPy correcto en 140 archivos y 95
+  pruebas Pytest aprobadas. Build normal, reinicio con persistencia y health
+  HTTP correctos.
+- Windows Docker Desktop y WSL2 no fueron probados realmente; son compatibles
+  por diseño y requieren validación manual.
+- Un entorno existente de Fase 11 puede requerir recrear una sola vez el
+  migrador y el inicializador al adoptar la nueva red aislada:
+  `docker compose rm -sf migrations report-storage-init`, seguido de
+  `docker compose up -d`. No elimina volúmenes ni requiere borrar datos.
+- Guía de operación, migraciones, volúmenes, reset y troubleshooting:
+  `docs/BACKEND_DOCKER_PORTABILITY.md`.

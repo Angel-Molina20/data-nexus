@@ -74,6 +74,9 @@ Debe permitir:
 * Utilizar Ruff.
 * Utilizar MyPy.
 * Utilizar Pytest.
+* Ejecutar Python, pip, Alembic y herramientas backend dentro de Docker.
+* No crear entornos virtuales ni instalar dependencias Python en el host.
+* Mantener imágenes, rutas y scripts portables entre Linux, Windows y WSL2.
 * Mantener los routers delgados.
 * Implementar servicios y repositorios claramente separados.
 * Centralizar el manejo de errores.

@@ -42,7 +42,7 @@ frontend-build:
 	$(COMPOSE) exec frontend pnpm build
 
 migrate:
-	$(COMPOSE) exec backend alembic upgrade head
+	$(COMPOSE) run --rm migrations
 
 seed-rbac:
 	$(COMPOSE) exec backend python -m app.cli seed-rbac
