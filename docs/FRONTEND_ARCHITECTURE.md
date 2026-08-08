@@ -191,3 +191,21 @@ La feature `auth` mantiene separadas sus responsabilidades:
 Usuario y contraseña no pertenecen a estado global. La restauración de sesión se
 resuelve antes de renderizar el formulario y las rutas públicas/protegidas siguen
 siendo responsabilidad del router y `AuthProvider`.
+
+## Dashboard
+
+`features/dashboard` contiene un vertical completo y pequeño:
+
+- `api/dashboardApi.ts` consume el resumen autenticado mediante el cliente HTTP
+  común;
+- `hooks/useDashboard.ts` define la consulta, caché y refresco;
+- `types.ts` representa el contrato agregado;
+- `components/` presenta header, acciones autorizadas, métricas, recursos
+  recientes y onboarding;
+- `pages/HomePage.tsx` solo compone estados y bloques.
+
+El resumen es una proyección de lectura: nunca dispara pruebas de conexión ni
+descarga filas de consultas. Los controles de creación se derivan de
+`AuthProvider`; la ausencia visual de una acción no sustituye la autorización del
+backend. Los formatters transversales de números, duración y fecha relativa viven
+en `shared/utils/formatters.ts`.

@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–16 están completadas; la última
-entrega corresponde a la **Fase 16**, rediseño visual y experiencia de usuario
-del login.
+Actualizado: 8 de agosto de 2026. Las Fases 0–17 están completadas; la última
+entrega corresponde a la **Fase 17**, rediseño visual y funcional del dashboard
+principal.
 
 ## 1. Objetivo general
 
@@ -709,3 +709,42 @@ Estado: **completada el 8 de agosto de 2026**.
   Playwright dentro de Alpine conserva la limitación glibc ya documentada; Google
   Chrome del host se usó únicamente para E2E y revisión visual. Edge y Firefox
   son compatibles por diseño, pero no fueron probados realmente en esta fase.
+
+## 17. Fase 17 — dashboard principal útil y contextual
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- El dashboard está organizado como centro de trabajo: saludo de sesión, salud
+  del backend, refresco, acciones autorizadas, cuatro métricas y cuatro listados
+  recientes. El contenido deja de usar datos simulados y no representa una
+  auditoría ficticia.
+- `GET /api/v1/dashboard/summary` agrega exclusivamente metadatos accesibles al
+  principal autenticado. El router es delgado; `DashboardService` aplica
+  permisos y periodo, y `DashboardRepository` encapsula conteos y consultas.
+- Las métricas reales son conexiones accesibles y su último estado conocido,
+  consultas guardadas del propietario, ejecuciones iniciadas por el usuario en
+  las últimas 24 horas y reportes no archivados del propietario. No se prueban
+  conexiones, no se cargan resultados y no se muestran SQL, parámetros ni
+  credenciales.
+- Conexiones, consultas, ejecuciones y reportes recientes se limitan a cinco
+  elementos por sección. Los permisos `*.read`/`queries.execute` controlan cada
+  sección; `connections.create`, `queries.create` y `reports.create` controlan
+  las acciones rápidas. El backend vuelve a aplicar autorización.
+- Una instalación sin conexiones muestra un onboarding breve de tres pasos si
+  el usuario puede crear conexiones. Ceros reales, secciones no disponibles,
+  skeletons y error recuperable se distinguen visualmente.
+- `HomePage` quedó como composición. `features/dashboard` separa API, hook,
+  tipos, encabezado, acciones, métricas, recientes y onboarding. Los formatters
+  compartidos normalizan números, duración y fechas relativas.
+- Ruff format/check, MyPy estricto y 100 pruebas backend finalizaron
+  correctamente. Prettier, ESLint, TypeScript forzado, 44 pruebas Vitest y build
+  Vite finalizaron correctamente. El build mantiene el aviso no bloqueante del
+  chunk principal, reservado para la fase de rendimiento.
+- El E2E con Google Chrome cubre login, resumen, acción rápida, creación de
+  consulta y retorno por la navegación existente. Se revisaron capturas a
+  1920×1080, 1440×900, 1366×768, 1024×768, 768×900 y 390×844; el menú móvil se
+  validó en los dos tamaños menores. Chrome fue probado realmente; Edge y
+  Firefox son compatibles por diseño y siguen pendientes de validación manual.
+- Docker reconstruyó el backend y el stack quedó saludable. Para sustituir
+  contenedores one-shot/red antiguos fue necesario `docker compose down` sin
+  `-v`; no se eliminó ningún volumen persistente ni dato.

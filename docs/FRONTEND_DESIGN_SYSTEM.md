@@ -159,6 +159,20 @@ El panel visual es exclusivo del login y usa CSS/SVG propio sin recursos remotos
 Debe respetarse `prefers-reduced-motion`, `100dvh` con fallback y el ancho máximo
 del shell para pantallas ultra-wide.
 
+## Dashboard
+
+El dashboard usa una jerarquía estable: contexto y acciones, métricas compactas y
+recursos recientes. Las estadísticas emplean Card con un solo acento azul suave;
+no se asigna un color intenso diferente a cada métrica ni se muestran tendencias
+sin datos reales. Los listados usan Panel, estados semánticos y filas con área de
+interacción clara cuando existe un destino real.
+
+Durante carga, cada bloque conserva su geometría mediante skeletons. Un cero real
+se muestra como `0`; un bloque no autorizado o no disponible no se disfraza como
+cero. En móvil, las métricas y paneles pasan a una columna sin convertir los
+listados en tablas horizontales. El onboarding solo aparece cuando no existe una
+primera conexión y hay permiso para crearla.
+
 ## Límites de la fase 13
 
 No se rediseñaron login, dashboard, navegación funcional ni constructor. Las

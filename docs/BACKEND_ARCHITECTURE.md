@@ -64,6 +64,12 @@ Los repositorios son explícitos por dominio. No existe un repositorio base
 genérico. `schema_snapshots.py` contiene transformaciones puras del catálogo para
 que `SchemaRepository` se concentre en persistencia y sincronización.
 
+`DashboardRepository` es una proyección de lectura agregada. Sus consultas están
+acotadas por propietario o ACL, cuentan recursos sin materializarlos y recuperan
+como máximo cinco elementos recientes por dominio. `DashboardService` decide qué
+secciones puede solicitar según permisos y fija el periodo de ejecuciones; el
+router únicamente adapta la proyección al schema HTTP.
+
 ## Modelos, schemas y DTO
 
 - SQLAlchemy representa persistencia interna.
@@ -112,4 +118,3 @@ docker compose exec -T backend ruff check app tests migrations
 docker compose exec -T backend mypy app tests
 docker compose exec -T backend pytest -q
 ```
-
