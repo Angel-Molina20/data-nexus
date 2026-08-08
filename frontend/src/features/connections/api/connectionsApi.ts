@@ -1,18 +1,15 @@
-import type {
-  ConnectionDetail,
-  ConnectionFormData,
-  ConnectionList,
-  TestResult,
-} from "../features/connections/types";
-import { apiRequest } from "./shared";
+import type { ConnectionDetail, ConnectionFormData, ConnectionList, TestResult } from "../types";
+import { apiRequest } from "../../../shared/api/httpClient";
 
 export const testConnection = (data: ConnectionFormData) =>
   apiRequest<TestResult>("/connections/test", {
-    method: "POST", body: JSON.stringify(data),
+    method: "POST",
+    body: JSON.stringify(data),
   });
 export const createConnection = (data: ConnectionFormData) =>
   apiRequest<ConnectionDetail>("/connections", {
-    method: "POST", body: JSON.stringify(data),
+    method: "POST",
+    body: JSON.stringify(data),
   });
 export function listConnections(params: { search?: string; status?: string; page?: number }) {
   const query = new URLSearchParams();
@@ -25,7 +22,8 @@ export const getConnection = (id: string) =>
   apiRequest<ConnectionDetail>(`/connections/${encodeURIComponent(id)}`);
 export const updateConnection = (id: string, data: Partial<ConnectionFormData>) =>
   apiRequest<ConnectionDetail>(`/connections/${encodeURIComponent(id)}`, {
-    method: "PATCH", body: JSON.stringify(data),
+    method: "PATCH",
+    body: JSON.stringify(data),
   });
 export const deleteConnection = (id: string) =>
   apiRequest<undefined>(`/connections/${encodeURIComponent(id)}`, { method: "DELETE" });

@@ -1,5 +1,4 @@
-export type RelationshipStatus =
-  | "suggested" | "confirmed" | "rejected" | "invalid" | "disabled";
+export type RelationshipStatus = "suggested" | "confirmed" | "rejected" | "invalid" | "disabled";
 
 export interface RelationshipEndpoint {
   entity_id: string;

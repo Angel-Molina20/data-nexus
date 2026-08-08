@@ -1,9 +1,15 @@
-import type { PublicApiError } from "../features/connections/types";
+interface PublicApiError {
+  code: string;
+  message: string;
+}
 
 const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api/v1";
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
     super(message);
   }
 }
@@ -27,7 +33,11 @@ async function getCsrfToken(): Promise<string> {
   return csrfToken;
 }
 
-export async function apiRequest<T>(path: string, init?: RequestInit, options?: { csrf?: boolean }): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  init?: RequestInit,
+  options?: { csrf?: boolean },
+): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("Accept", "application/json");
   headers.set("Content-Type", "application/json");
@@ -42,7 +52,11 @@ export async function apiRequest<T>(path: string, init?: RequestInit, options?: 
   }
   if (!response.ok) {
     let error: PublicApiError | undefined;
-    try { error = (await response.json()) as PublicApiError; } catch { error = undefined; }
+    try {
+      error = (await response.json()) as PublicApiError;
+    } catch {
+      error = undefined;
+    }
     throw new ApiError(
       error?.message ?? "No fue posible completar la solicitud.",
       error?.code ?? "INTERNAL_ERROR",

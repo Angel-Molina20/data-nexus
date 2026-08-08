@@ -6,8 +6,22 @@ import { ReportColumnsEditor } from "./ReportColumnsEditor";
 import type { ReportColumn } from "./types";
 
 const columns: ReportColumn[] = [
-  { source_key: "id", label: "Código", visible: true, position: 0, alignment: "right", format: { type: "integer", null_label: "NULL", true_label: "Sí", false_label: "No" } },
-  { source_key: "name", label: "Nombre", visible: true, position: 1, alignment: "left", format: { type: "text", null_label: "NULL", true_label: "Sí", false_label: "No" } },
+  {
+    source_key: "id",
+    label: "Código",
+    visible: true,
+    position: 0,
+    alignment: "right",
+    format: { type: "integer", null_label: "NULL", true_label: "Sí", false_label: "No" },
+  },
+  {
+    source_key: "name",
+    label: "Nombre",
+    visible: true,
+    position: 1,
+    alignment: "left",
+    format: { type: "text", null_label: "NULL", true_label: "Sí", false_label: "No" },
+  },
 ];
 
 afterEach(cleanup);
@@ -18,14 +32,18 @@ describe("ReportColumnsEditor", () => {
     render(<ReportColumnsEditor columns={columns} onChange={onChange} />);
 
     fireEvent.click(screen.getByLabelText("Mostrar Código"));
-    expect(onChange).toHaveBeenCalledWith(expect.arrayContaining([
-      expect.objectContaining({ source_key: "id", visible: false }),
-    ]));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ source_key: "id", visible: false })]),
+    );
 
-    fireEvent.change(screen.getByLabelText("Etiqueta de name"), { target: { value: "Estudiante" } });
-    expect(onChange).toHaveBeenLastCalledWith(expect.arrayContaining([
-      expect.objectContaining({ source_key: "name", label: "Estudiante" }),
-    ]));
+    fireEvent.change(screen.getByLabelText("Etiqueta de name"), {
+      target: { value: "Estudiante" },
+    });
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ source_key: "name", label: "Estudiante" }),
+      ]),
+    );
   });
 
   it("provides a keyboard-compatible ordering alternative", async () => {

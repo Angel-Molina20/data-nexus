@@ -1,8 +1,83 @@
 import type { ExecutionColumn, ExecutionInfo } from "../query-execution/types";
 
-export interface ReportColumnFormat { type: string; decimal_places?: number | null; currency_code?: string | null; null_label: string; true_label: string; false_label: string; truncate_length?: number | null }
-export interface ReportColumn { source_key: string; label: string; visible: boolean; position: number; width?: number | null; alignment: "left" | "center" | "right"; format: ReportColumnFormat }
-export interface ReportConfiguration { version: 1; layout: { orientation: "portrait" | "landscape"; page_size: "A4" | "letter"; show_generated_at: boolean; show_page_numbers: boolean }; header: { title: string; subtitle: string | null; description: string | null }; columns: ReportColumn[]; footer: { text: string; show_row_count: boolean }; locale: string; timezone: string; parameters: Record<string, Record<string, unknown>> }
-export interface Report { id: string; name: string; description: string | null; query_id: string; query_revision: number; connection_id: string; status: "draft" | "published" | "archived"; title: string; subtitle: string | null; configuration: ReportConfiguration; configuration_version: number; created_by: string; published_at: string | null; archived_at: string | null; created_at: string; updated_at: string; compatible: boolean; warnings: string[] }
-export interface ReportPreview { report: Report; execution: ExecutionInfo; columns: ExecutionColumn[]; rows: Array<Record<string, unknown>>; warnings: string[] }
-export interface ReportExport { id: string; report_id: string; query_id: string; query_revision: number; execution_id: string | null; requested_by: string; format: "csv" | "xlsx" | "pdf"; status: string; file_name: string; content_type: string | null; row_count: number; file_size: number | null; started_at: string; finished_at: string | null; expires_at: string | null; error_code: string | null; error_message: string | null; created_at: string; download_url: string | null }
+export interface ReportColumnFormat {
+  type: string;
+  decimal_places?: number | null;
+  currency_code?: string | null;
+  null_label: string;
+  true_label: string;
+  false_label: string;
+  truncate_length?: number | null;
+}
+export interface ReportColumn {
+  source_key: string;
+  label: string;
+  visible: boolean;
+  position: number;
+  width?: number | null;
+  alignment: "left" | "center" | "right";
+  format: ReportColumnFormat;
+}
+export interface ReportConfiguration {
+  version: 1;
+  layout: {
+    orientation: "portrait" | "landscape";
+    page_size: "A4" | "letter";
+    show_generated_at: boolean;
+    show_page_numbers: boolean;
+  };
+  header: { title: string; subtitle: string | null; description: string | null };
+  columns: ReportColumn[];
+  footer: { text: string; show_row_count: boolean };
+  locale: string;
+  timezone: string;
+  parameters: Record<string, Record<string, unknown>>;
+}
+export interface Report {
+  id: string;
+  name: string;
+  description: string | null;
+  query_id: string;
+  query_revision: number;
+  connection_id: string;
+  status: "draft" | "published" | "archived";
+  title: string;
+  subtitle: string | null;
+  configuration: ReportConfiguration;
+  configuration_version: number;
+  created_by: string;
+  published_at: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  compatible: boolean;
+  warnings: string[];
+}
+export interface ReportPreview {
+  report: Report;
+  execution: ExecutionInfo;
+  columns: ExecutionColumn[];
+  rows: Array<Record<string, unknown>>;
+  warnings: string[];
+}
+export interface ReportExport {
+  id: string;
+  report_id: string;
+  query_id: string;
+  query_revision: number;
+  execution_id: string | null;
+  requested_by: string;
+  format: "csv" | "xlsx" | "pdf";
+  status: string;
+  file_name: string;
+  content_type: string | null;
+  row_count: number;
+  file_size: number | null;
+  started_at: string;
+  finished_at: string | null;
+  expires_at: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string;
+  download_url: string | null;
+}

@@ -1,11 +1,14 @@
 import type {
-  PhysicalRelationship, SchemaChange, SchemaEntity, SchemaEntitySummary,
-  SchemaSummary, Synchronization,
-} from "../features/schema/types";
-import { apiRequest } from "./shared";
+  PhysicalRelationship,
+  SchemaChange,
+  SchemaEntity,
+  SchemaEntitySummary,
+  SchemaSummary,
+  Synchronization,
+} from "../types";
+import { apiRequest } from "../../../shared/api/httpClient";
 
-const base = (connectionId: string) =>
-  `/connections/${encodeURIComponent(connectionId)}/schema`;
+const base = (connectionId: string) => `/connections/${encodeURIComponent(connectionId)}/schema`;
 export const synchronizeSchema = (connectionId: string) =>
   apiRequest<Synchronization>(`${base(connectionId)}/synchronize`, { method: "POST" });
 export const getSchemaSummary = (connectionId: string) =>
@@ -29,13 +32,9 @@ export const listPhysicalRelationships = (connectionId: string) =>
     `${base(connectionId)}/relationships`,
   );
 export const listSchemaSynchronizations = (connectionId: string) =>
-  apiRequest<{ items: Synchronization[]; total: number }>(
-    `${base(connectionId)}/synchronizations`,
-  );
+  apiRequest<{ items: Synchronization[]; total: number }>(`${base(connectionId)}/synchronizations`);
 export const getSchemaSynchronization = (connectionId: string, id: string) =>
-  apiRequest<Synchronization>(
-    `${base(connectionId)}/synchronizations/${encodeURIComponent(id)}`,
-  );
+  apiRequest<Synchronization>(`${base(connectionId)}/synchronizations/${encodeURIComponent(id)}`);
 export const listSchemaChanges = (connectionId: string, synchronizationId?: string) => {
   const query = new URLSearchParams();
   if (synchronizationId) query.set("synchronization_id", synchronizationId);

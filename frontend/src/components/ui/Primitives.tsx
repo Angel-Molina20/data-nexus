@@ -1,5 +1,28 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "./utils";
-export function Divider({ className, ...props }: HTMLAttributes<HTMLHRElement>) { return <hr className={cx("border-0 border-t border-border", className)} {...props} />; }
-export function ScrollArea({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) { return <div className={cx("min-h-0 overflow-auto overscroll-contain", className)} {...props}>{children}</div>; }
-export function Tooltip({ children, content }: { children: ReactNode; content: string }) { return <span className="group relative inline-flex"><span aria-describedby={`tooltip-${content.replaceAll(" ", "-").toLowerCase()}`}>{children}</span><span className="pointer-events-none absolute bottom-full left-1/2 z-[var(--z-tooltip,70)] mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-sm bg-slate-950 px-2 py-1 text-xs text-white group-hover:block group-focus-within:block" id={`tooltip-${content.replaceAll(" ", "-").toLowerCase()}`} role="tooltip">{content}</span></span>; }
+export function Divider({ className, ...props }: HTMLAttributes<HTMLHRElement>) {
+  return <hr className={cx("border-0 border-t border-border", className)} {...props} />;
+}
+export function ScrollArea({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cx("min-h-0 overflow-auto overscroll-contain", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+export function Tooltip({ children, content }: { children: ReactNode; content: string }) {
+  return (
+    <span className="group relative inline-flex">
+      <span aria-describedby={`tooltip-${content.replaceAll(" ", "-").toLowerCase()}`}>
+        {children}
+      </span>
+      <span
+        className="pointer-events-none absolute bottom-full left-1/2 z-[var(--z-tooltip,70)] mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-sm bg-slate-950 px-2 py-1 text-xs text-white group-hover:block group-focus-within:block"
+        id={`tooltip-${content.replaceAll(" ", "-").toLowerCase()}`}
+        role="tooltip"
+      >
+        {content}
+      </span>
+    </span>
+  );
+}

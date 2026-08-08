@@ -4,10 +4,14 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
-import { compileSavedQuery, getCompilerCapabilities, getQuery } from "../services/queries";
+import {
+  compileSavedQuery,
+  getCompilerCapabilities,
+  getQuery,
+} from "../features/queries/api/queriesApi";
 import { QueryCompilePage } from "./QueryCompilePage";
 
-vi.mock("../services/queries", () => ({
+vi.mock("../features/queries/api/queriesApi", () => ({
   compileSavedQuery: vi.fn(),
   getCompilerCapabilities: vi.fn(),
   getQuery: vi.fn(),
@@ -21,7 +25,30 @@ describe("QueryCompilePage", () => {
       description: null,
       connection_id: "connection-id",
       owner_user_id: "user-id",
-      document: { schema_version: "1.0", connection_id: "connection-id", query: { scope_id: "root", query_type: "select", source: { source_id: "src_main", entity_id: "entity-id", alias: "main" }, joins: [], select: [{ select_id: "item", item_type: "literal", expression: { node_type: "literal", value_type: "integer", value: 1 } }], group_by: [], order_by: [], distinct: false, unions: [] }, parameters: [], metadata: {}, options: {} },
+      document: {
+        schema_version: "1.0",
+        connection_id: "connection-id",
+        query: {
+          scope_id: "root",
+          query_type: "select",
+          source: { source_id: "src_main", entity_id: "entity-id", alias: "main" },
+          joins: [],
+          select: [
+            {
+              select_id: "item",
+              item_type: "literal",
+              expression: { node_type: "literal", value_type: "integer", value: 1 },
+            },
+          ],
+          group_by: [],
+          order_by: [],
+          distinct: false,
+          unions: [],
+        },
+        parameters: [],
+        metadata: {},
+        options: {},
+      },
       schema_version: "1.0",
       status: "valid",
       validation_status: "valid",

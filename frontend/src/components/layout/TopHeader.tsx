@@ -2,7 +2,7 @@ import { Menu, Power, UserRound } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 import { useAuth } from "../../features/auth/context";
-import type { BackendStatusValue } from "../../services/health";
+import type { BackendStatusValue } from "../../shared/api/health";
 import { BackendStatus } from "../feedback/BackendStatus";
 import { IconButton } from "../ui/IconButton";
 
@@ -12,11 +12,7 @@ interface TopHeaderProps {
   pageTitle: string;
 }
 
-export function TopHeader({
-  backendStatus,
-  onOpenMobileMenu,
-  pageTitle,
-}: TopHeaderProps) {
+export function TopHeader({ backendStatus, onOpenMobileMenu, pageTitle }: TopHeaderProps) {
   const auth = useAuth();
   const navigate = useNavigate();
   return (
@@ -41,8 +37,24 @@ export function TopHeader({
             <p className="text-sm font-semibold">{auth.user?.full_name}</p>
             <p className="text-xs text-muted">{auth.user?.roles.join(", ")}</p>
           </div>
-          <Link aria-label="Cambiar contraseña" className="rounded-lg border p-2 text-slate-600" to="/account/change-password"><UserRound className="size-4" /></Link>
-          <IconButton className="header-logout-button border border-border bg-surface shadow-sm" label="Cerrar sesión" onClick={() => { void auth.logout().then(() => { void navigate("/login", { replace: true }); }); }}><Power aria-hidden="true" /></IconButton>
+          <Link
+            aria-label="Cambiar contraseña"
+            className="rounded-lg border p-2 text-slate-600"
+            to="/account/change-password"
+          >
+            <UserRound className="size-4" />
+          </Link>
+          <IconButton
+            className="header-logout-button border border-border bg-surface shadow-sm"
+            label="Cerrar sesión"
+            onClick={() => {
+              void auth.logout().then(() => {
+                void navigate("/login", { replace: true });
+              });
+            }}
+          >
+            <Power aria-hidden="true" />
+          </IconButton>
         </div>
       </div>
     </header>

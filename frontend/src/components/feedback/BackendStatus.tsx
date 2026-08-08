@@ -1,6 +1,6 @@
 import { CircleCheck, CircleX, LoaderCircle } from "lucide-react";
 
-import type { BackendStatusValue } from "../../services/health";
+import type { BackendStatusValue } from "../../shared/api/health";
 
 interface BackendStatusProps {
   compact?: boolean;

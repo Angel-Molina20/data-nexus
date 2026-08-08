@@ -13,6 +13,12 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ action, badge, description, icon: Icon, title }: EmptyStateProps) {
-  const footer = badge || action ? <div className="flex flex-wrap items-center justify-center gap-2">{badge ? <StatusBadge variant="info">{badge}</StatusBadge> : null}{action}</div> : undefined;
+  const footer =
+    badge || action ? (
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {badge ? <StatusBadge variant="info">{badge}</StatusBadge> : null}
+        {action}
+      </div>
+    ) : undefined;
   return <EmptyStateBase action={footer} description={description} icon={Icon} title={title} />;
 }

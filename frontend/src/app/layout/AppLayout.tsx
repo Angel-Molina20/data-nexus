@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
 
-import { getPageTitle } from "../app/navigation";
-import { TopHeader } from "../components/layout/TopHeader";
-import { MobileNavigation } from "../components/navigation/MobileNavigation";
-import { Sidebar } from "../components/navigation/Sidebar";
-import type { BackendStatusValue } from "../services/health";
+import { getPageTitle } from "../navigation";
+import { TopHeader } from "../../components/layout/TopHeader";
+import { MobileNavigation } from "../../components/navigation/MobileNavigation";
+import { Sidebar } from "../../components/navigation/Sidebar";
+import type { BackendStatusValue } from "../../shared/api/health";
 
 interface AppLayoutProps {
   backendStatus: BackendStatusValue;
@@ -46,9 +46,7 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
           }}
         />
         <main className="min-w-0 flex-1 overflow-x-hidden">
-          <div className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-            {children}
-          </div>
+          <div className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
         </main>
       </div>
     </div>
