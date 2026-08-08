@@ -17,7 +17,7 @@ export const navigationItems: readonly NavigationItem[] = [
   { label: "Conexiones", path: "/connections", icon: Database, permission: "connections.read" },
   { label: "Explorador de esquemas", path: "/schema", icon: TableProperties, permission: "schemas.read" },
   { label: "Consultas", path: "/queries", icon: SearchCode, permission: "queries.read" },
-  { label: "Reportes", path: "/reports", icon: FileBarChart },
+  { label: "Reportes", path: "/reports", icon: FileBarChart, permission: "reports.read" },
   { label: "Catálogo semántico", path: "/semantic-catalog", icon: BookOpenText, permission: "semantic_catalog.read" },
   { label: "Programaciones", path: "/schedules", icon: CalendarClock },
   { label: "Usuarios", path: "/users", icon: Users, permission: "users.read" },
@@ -25,6 +25,9 @@ export const navigationItems: readonly NavigationItem[] = [
 ];
 
 export function getPageTitle(pathname: string): string {
+  if (pathname === "/reports/new") return "Nuevo reporte";
+  if (/^\/reports\/[^/]+\/edit$/.test(pathname)) return "Editar reporte";
+  if (/^\/reports\/[^/]+$/.test(pathname)) return "Detalle de reporte";
   if (pathname === "/queries/new") return "Nueva consulta";
   if (/^\/queries\/[^/]+\/edit-json$/.test(pathname)) return "Editor JSON";
   if (/^\/queries\/[^/]+$/.test(pathname)) return "Detalle de consulta";

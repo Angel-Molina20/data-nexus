@@ -1,8 +1,4 @@
-import {
-  CalendarClock,
-  FileBarChart,
-  Settings,
-} from "lucide-react";
+import { CalendarClock, Settings } from "lucide-react";
 import { createBrowserRouter } from "react-router";
 
 import { ConnectionsPage } from "../pages/ConnectionsPage";
@@ -32,6 +28,9 @@ import { QueryDetailPage } from "../pages/QueryDetailPage";
 import { QueryJsonEditorPage } from "../pages/QueryJsonEditorPage";
 import { QueryCompilePage } from "../pages/QueryCompilePage";
 import { QueryBuilderPage } from "../pages/QueryBuilderPage";
+import { ReportsPage } from "../pages/ReportsPage";
+import { ReportEditorPage } from "../pages/ReportEditorPage";
+import { ReportDetailPage } from "../pages/ReportDetailPage";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: LoginPage },
@@ -61,16 +60,11 @@ export const router = createBrowserRouter([
       { path: "queries/:id/compile", element: <PermissionGuard permission="queries.compile"><QueryCompilePage /></PermissionGuard> },
       {
         path: "reports",
-        element: (
-          <ModulePage
-            title="Reportes"
-            description="Organiza reportes reutilizables sobre múltiples fuentes de datos."
-            detail="Los reportes funcionales se habilitarán en una fase posterior."
-            icon={FileBarChart}
-            phase="Fase 10"
-          />
-        ),
+        element: <PermissionGuard permission="reports.read"><ReportsPage /></PermissionGuard>,
       },
+      { path: "reports/new", element: <PermissionGuard permission="reports.create"><ReportEditorPage /></PermissionGuard> },
+      { path: "reports/:reportId", element: <PermissionGuard permission="reports.read"><ReportDetailPage /></PermissionGuard> },
+      { path: "reports/:reportId/edit", element: <PermissionGuard permission="reports.update"><ReportEditorPage /></PermissionGuard> },
       { path: "semantic-catalog", Component: SemanticCatalogIndexPage },
       {
         path: "schedules",

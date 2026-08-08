@@ -23,11 +23,14 @@ services:
       - --reload
     volumes:
       - ./backend:/app
+      - report_exports:/app/storage/report-exports
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
+      report-storage-init:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD
@@ -38,6 +41,18 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - datanexus-network
+
+  report-storage-init:
+    build:
+      context: ./backend
+      target: development
+    user: "0:0"
+    command: ["sh", "-c", "mkdir -p /app/storage/report-exports && chown 100:101 /app/storage/report-exports && chmod 700 /app/storage/report-exports"]
+    volumes:
+      - report_exports:/app/storage/report-exports
+    restart: "no"
     networks:
       - datanexus-network
 
@@ -163,6 +178,7 @@ volumes:
   mysql56_data:
   mysql8_data:
   frontend_node_modules:
+  report_exports:
 
 networks:
   datanexus-network:

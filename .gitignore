@@ -21,6 +21,8 @@ frontend/.pnpm-store/
 dist/
 .vite/
 *.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
 
 # Editors and operating systems
 .idea/
