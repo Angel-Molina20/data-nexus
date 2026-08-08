@@ -2,20 +2,24 @@ import { useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
 import { PageSection } from "../components/layout/PageSection";
-import { BackLink } from "../components/navigation/BackLink";
 import { ConnectionFields } from "../features/connections/ConnectionFields";
 import { editConnectionSchema } from "../features/connections/schema";
 import type { ConnectionFormData } from "../features/connections/types";
 import { getConnection, updateConnection } from "../features/connections/api/connectionsApi";
+import { routes } from "../app/router/routes";
+import { useReturnNavigation } from "../shared/hooks/useReturnNavigation";
+import { useUnsavedChangesGuard } from "../shared/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "../components/navigation/UnsavedChangesDialog";
 
 export function EditConnectionPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { returnTo } = useReturnNavigation(routes.connections.detail(id));
   const queryClient = useQueryClient();
   const initialized = useRef(false);
   const query = useQuery({
@@ -60,6 +64,7 @@ export function EditConnectionPage() {
     form.formState.dirtyFields.username ||
     form.formState.dirtyFields.password ||
     form.formState.dirtyFields.ssl_enabled;
+  const unsaved = useUnsavedChangesGuard(form.formState.isDirty);
   const update = useMutation({
     mutationFn: (data: ConnectionFormData) => {
       const payload: Partial<ConnectionFormData> = { ...data };
@@ -68,7 +73,16 @@ export function EditConnectionPage() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["connections"] });
-      void navigate(`/connections/${id}`, { state: { message: "Conexión actualizada." } });
+      form.reset(form.getValues());
+      unsaved.navigateWithoutPrompt(() => {
+        const detailPath = routes.connections.detail(id);
+        void navigate(routes.connections.detail(id), {
+          state: {
+            ...(returnTo !== detailPath ? { from: returnTo } : {}),
+            message: "Conexión actualizada.",
+          },
+        });
+      });
     },
   });
   if (query.isPending)
@@ -82,9 +96,13 @@ export function EditConnectionPage() {
       <PageHeader
         title="Editar conexión"
         description="Los cambios técnicos se prueban antes de guardarse."
-        breadcrumb={
-          <BackLink label="Volver a conexión" to={`/connections/${id}`} variant="breadcrumb" />
-        }
+        backAction={{ fallback: routes.connections.detail(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: query.data?.name ?? "Conexión", to: routes.connections.detail(id) },
+          { label: "Editar" },
+        ]}
       />
       <PageSection>
         <form
@@ -102,6 +120,9 @@ export function EditConnectionPage() {
           />
           {update.isError ? <p className="alert-error">{update.error.message}</p> : null}
           <div className="flex flex-wrap justify-end gap-3">
+            <Link className="btn-secondary" to={returnTo}>
+              Cancelar
+            </Link>
             <button className="btn-primary" disabled={update.isPending} type="submit">
               {update.isPending
                 ? "Probando y actualizando…"
@@ -112,6 +133,11 @@ export function EditConnectionPage() {
           </div>
         </form>
       </PageSection>
+      <UnsavedChangesDialog
+        onLeave={unsaved.leave}
+        onStay={unsaved.stay}
+        open={unsaved.isBlocked}
+      />
     </PageContainer>
   );
 }

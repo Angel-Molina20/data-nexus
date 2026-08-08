@@ -15,7 +15,10 @@ import { getSchemaEntity } from "../../schema/api/schemaApi";
 import type { SchemaEntity } from "../../schema/types";
 import { ApiError } from "../../../shared/api/httpClient";
 import { builderReducer, createBuilderState, localIssues, queryActions } from "../state";
-import { useBuilderKeyboardShortcuts, useUnsavedChangesWarning } from "./useBuilderShortcuts";
+import { useBuilderKeyboardShortcuts } from "./useBuilderShortcuts";
+import { useUnsavedChangesGuard } from "../../../shared/hooks/useUnsavedChangesGuard";
+import { useReturnNavigation } from "../../../shared/hooks/useReturnNavigation";
+import { routes } from "../../../app/router/routes";
 
 export function useQueryBuilderController(savedQuery: SavedQuery) {
   const navigate = useNavigate();
@@ -55,7 +58,8 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
   );
   const problems = useMemo(() => localIssues(state.workingQuery), [state.workingQuery]);
 
-  useUnsavedChangesWarning(state.dirty);
+  const unsaved = useUnsavedChangesGuard(state.dirty);
+  const { returnTo } = useReturnNavigation(routes.queries.list());
   useBuilderKeyboardShortcuts(dispatch);
 
   const save = useMutation({
@@ -110,10 +114,7 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
       }),
     );
   };
-  const leave = (path: string) => {
-    if (!state.dirty || window.confirm("Hay cambios sin guardar. ¿Salir sin guardarlos?"))
-      void navigate(path);
-  };
+  const leave = (path = returnTo) => void navigate(path);
   const duplicate = () => {
     void duplicateQuery(savedQuery.id).then((copy) => navigate(`/queries/${copy.id}/builder`));
   };
@@ -146,6 +147,7 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
     modify,
     problems,
     reload,
+    returnTo,
     save,
     savedQuery,
     setCatalogOpen,
@@ -153,6 +155,7 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
     setInspectorOpen,
     setRelationshipDialogOpen,
     state,
+    unsaved,
     updateLayout,
     validate,
   };

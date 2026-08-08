@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, CheckCircle2, Code2, Copy, FileJson2, Network, Plus, Trash2 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { useAuth } from "../features/auth/context";
+import { Pagination } from "../components/ui/Pagination";
+import { routes } from "../app/router/routes";
+import { returnState } from "../shared/navigation/navigationState";
 import {
   archiveQuery,
   deleteQuery,
@@ -17,7 +20,15 @@ import {
 export function QueriesPage() {
   const client = useQueryClient();
   const { hasPermission } = useAuth();
-  const query = useQuery({ queryKey: ["queries"], queryFn: listQueries });
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = positiveInteger(searchParams.get("page"), 1);
+  const pageSize = positiveInteger(searchParams.get("page_size"), 25);
+  const origin = returnState(location);
+  const query = useQuery({
+    queryKey: ["queries", page, pageSize],
+    queryFn: () => listQueries(page, pageSize),
+  });
   const mutation = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: string }) => {
       if (action === "validate") await validateSavedQuery(id);
@@ -37,7 +48,7 @@ export function QueriesPage() {
         description="Diseña consultas como AST universal y obtén una vista SQL parametrizada sin ejecutar datos."
         actions={
           hasPermission("queries.create") ? (
-            <Link className="btn-primary" to="/queries/new">
+            <Link className="btn-primary" state={origin} to={routes.queries.create()}>
               <Plus className="size-4" />
               Nueva consulta
             </Link>
@@ -63,7 +74,8 @@ export function QueriesPage() {
                   <div className="flex items-center gap-2">
                     <Link
                       className="font-semibold text-slate-900 hover:text-blue-700"
-                      to={`/queries/${item.id}`}
+                      state={origin}
+                      to={routes.queries.detail(item.id)}
                     >
                       {item.name}
                     </Link>
@@ -92,7 +104,8 @@ export function QueriesPage() {
                     aria-label="Abrir constructor"
                     className="btn-secondary"
                     title="Abrir constructor"
-                    to={`/queries/${item.id}/builder`}
+                    state={origin}
+                    to={routes.queries.builder(item.id)}
                   >
                     <Network className="size-4" />
                   </Link>
@@ -101,7 +114,8 @@ export function QueriesPage() {
                       aria-label="Editar JSON"
                       className="btn-secondary"
                       title="Editar JSON"
-                      to={`/queries/${item.id}/edit-json`}
+                      state={origin}
+                      to={routes.queries.editJson(item.id)}
                     >
                       <FileJson2 className="size-4" />
                     </Link>
@@ -111,7 +125,8 @@ export function QueriesPage() {
                       aria-label="Compilar"
                       className="btn-secondary"
                       title="Compilar"
-                      to={`/queries/${item.id}/compile`}
+                      state={origin}
+                      to={routes.queries.compile(item.id)}
                     >
                       <Code2 className="size-4" />
                     </Link>
@@ -165,6 +180,29 @@ export function QueriesPage() {
           ))}
         </div>
       )}
+      {query.data ? (
+        <Pagination
+          onPageChange={(nextPage) => {
+            setSearchParams((current) => {
+              const next = new URLSearchParams(current);
+              next.set("page", String(nextPage));
+              return next;
+            });
+          }}
+          onPageSizeChange={(nextPageSize) => {
+            setSearchParams({ page: "1", page_size: String(nextPageSize) });
+          }}
+          page={query.data.page}
+          pageSize={query.data.page_size}
+          pageSizes={[25, 50, 100]}
+          totalPages={Math.max(1, Math.ceil(query.data.total / query.data.page_size))}
+        />
+      ) : null}
     </PageContainer>
   );
+}
+
+function positiveInteger(value: string | null, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }

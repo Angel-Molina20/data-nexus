@@ -1,9 +1,9 @@
 import type { Report, ReportConfiguration, ReportExport, ReportPreview } from "../types";
 import { apiRequest } from "../../../shared/api/httpClient";
 
-export const listReports = (search = "", status = "") =>
+export const listReports = (search = "", status = "", page = 1, pageSize = 20) =>
   apiRequest<{ items: Report[]; total: number; page: number; page_size: number }>(
-    `/reports?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`,
+    `/reports?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&page=${String(page)}&page_size=${String(pageSize)}`,
   );
 export const getReport = (id: string) => apiRequest<Report>(`/reports/${id}`);
 export const createReport = (payload: {

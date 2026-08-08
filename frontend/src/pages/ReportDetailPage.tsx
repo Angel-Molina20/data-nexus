@@ -1,7 +1,7 @@
 import { Download, FileDown, Pencil, Play } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -18,9 +18,12 @@ import {
   reportExportDownloadUrl,
 } from "../features/reports/api/reportsApi";
 import { formatDateTime, formatFileSizeInKilobytes } from "../shared/utils/formatters";
+import { routes } from "../app/router/routes";
+import { returnState } from "../shared/navigation/navigationState";
 
 export function ReportDetailPage() {
   const { reportId = "" } = useParams();
+  const location = useLocation();
   const client = useQueryClient();
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [format, setFormat] = useState("csv");
@@ -71,9 +74,19 @@ export function ReportDetailPage() {
         description={
           item.configuration.header.subtitle ?? item.description ?? "Reporte reutilizable"
         }
+        backAction={{ fallback: routes.reports.list(), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Reportes", to: routes.reports.list() },
+          { label: item.name },
+        ]}
         actions={
           <>
-            <Link className="btn-secondary" to={`/reports/${item.id}/edit`}>
+            <Link
+              className="btn-secondary"
+              state={returnState(location)}
+              to={routes.reports.edit(item.id)}
+            >
               <Pencil className="size-4" />
               Editar
             </Link>

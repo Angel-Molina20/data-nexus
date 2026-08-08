@@ -12,6 +12,7 @@ import { QueryInspectorPanel } from "./QueryInspectorPanel";
 import { useQueryBuilderController } from "./hooks/useQueryBuilderController";
 import { queryActions } from "./state";
 import type { SavedQuery } from "../queries/types";
+import { UnsavedChangesDialog } from "../../components/navigation/UnsavedChangesDialog";
 
 export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }) {
   const builder = useQueryBuilderController(savedQuery);
@@ -83,7 +84,7 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
         <button
           className="text-xs font-semibold text-slate-500"
           onClick={() => {
-            builder.leave(`/queries/${savedQuery.id}`);
+            builder.leave();
           }}
         >
           Cerrar
@@ -194,6 +195,11 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
           en el servidor.
         </p>
       </Modal>
+      <UnsavedChangesDialog
+        onLeave={builder.unsaved.leave}
+        onStay={builder.unsaved.stay}
+        open={builder.unsaved.isBlocked}
+      />
     </div>
   );
 }

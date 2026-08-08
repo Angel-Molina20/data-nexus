@@ -12,17 +12,26 @@ import {
   updateQuery,
   validateSavedQuery,
 } from "../features/queries/api/queriesApi";
+import { routes } from "../app/router/routes";
+import { useUnsavedChangesGuard } from "../shared/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "../components/navigation/UnsavedChangesDialog";
 
 export function QueryJsonEditorPage() {
   const { id = "" } = useParams();
   const client = useQueryClient();
   const saved = useQuery({ queryKey: ["query", id], queryFn: () => getQuery(id) });
   const [text, setText] = useState("");
+  const [baseline, setBaseline] = useState("");
   const [syntaxError, setSyntaxError] = useState("");
   const [result, setResult] = useState<ValidationResult | null>(null);
   useEffect(() => {
-    if (saved.data) setText(JSON.stringify(saved.data.document, null, 2));
+    if (saved.data) {
+      const document = JSON.stringify(saved.data.document, null, 2);
+      setText(document);
+      setBaseline(document);
+    }
   }, [saved.data]);
+  const unsaved = useUnsavedChangesGuard(Boolean(baseline) && text !== baseline);
   const parse = (): QueryDocument | null => {
     try {
       setSyntaxError("");
@@ -77,6 +86,9 @@ export function QueryJsonEditorPage() {
     },
     onSuccess: (value) => {
       client.setQueryData(["query", id], value);
+      const document = JSON.stringify(value.document, null, 2);
+      setText(document);
+      setBaseline(document);
       void client.invalidateQueries({ queryKey: ["queries"] });
     },
     onError: (error) => {
@@ -102,6 +114,13 @@ export function QueryJsonEditorPage() {
         eyebrow="Editor técnico"
         title={saved.data.name}
         description="Edita exclusivamente el AST JSON. Esta pantalla no acepta ni muestra SQL."
+        backAction={{ fallback: routes.queries.detail(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Consultas", to: routes.queries.list() },
+          { label: saved.data.name, to: routes.queries.detail(id) },
+          { label: "Editor JSON" },
+        ]}
       />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="min-w-0 rounded-xl border bg-white p-5">
@@ -191,6 +210,11 @@ export function QueryJsonEditorPage() {
           ))}
         </aside>
       </div>
+      <UnsavedChangesDialog
+        onLeave={unsaved.leave}
+        onStay={unsaved.stay}
+        open={unsaved.isBlocked}
+      />
     </PageContainer>
   );
 }

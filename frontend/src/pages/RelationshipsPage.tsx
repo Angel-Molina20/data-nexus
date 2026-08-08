@@ -5,9 +5,9 @@ import { Link, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
-import { BackLink } from "../components/navigation/BackLink";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { RelationshipGraph } from "../features/relationships/RelationshipGraph";
+import { routes } from "../app/router/routes";
 import {
   detectRelationshipCandidates,
   getRelationshipGraph,
@@ -74,9 +74,13 @@ export function RelationshipsPage() {
         eyebrow="Catálogo de relaciones"
         title="Relaciones físicas y lógicas"
         description="Complementa las claves foráneas con relaciones confirmadas por un administrador."
-        breadcrumb={
-          <BackLink label="Volver a conexión" to={`/connections/${id}`} variant="breadcrumb" />
-        }
+        backAction={{ fallback: routes.connections.detail(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: "Detalle", to: routes.connections.detail(id) },
+          { label: "Relaciones" },
+        ]}
         actions={
           <>
             <button

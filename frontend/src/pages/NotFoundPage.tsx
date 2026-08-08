@@ -1,7 +1,7 @@
-import { ArrowLeft, FileQuestion } from "lucide-react";
-import { Link } from "react-router";
+import { FileQuestion } from "lucide-react";
 
 import { PageContainer } from "../components/layout/PageContainer";
+import { BackButton } from "../components/navigation/BackButton";
 
 export function NotFoundPage() {
   return (
@@ -17,13 +17,9 @@ export function NotFoundPage() {
         <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
           La dirección solicitada no corresponde a ningún módulo disponible de DataNexus.
         </p>
-        <Link
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-          to="/"
-        >
-          <ArrowLeft aria-hidden="true" className="size-4" />
-          Volver al dashboard
-        </Link>
+        <div className="mt-6">
+          <BackButton fallback="/" label="Volver" />
+        </div>
       </div>
     </PageContainer>
   );

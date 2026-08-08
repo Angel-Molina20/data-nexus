@@ -209,3 +209,11 @@ descarga filas de consultas. Los controles de creación se derivan de
 `AuthProvider`; la ausencia visual de una acción no sustituye la autorización del
 backend. Los formatters transversales de números, duración y fecha relativa viven
 en `shared/utils/formatters.ts`.
+
+## Navegación contextual
+
+Los builders de rutas viven en `app/router/routes.ts`; la validación del origen y
+los hooks transversales viven en `shared/navigation` y `shared/hooks`. Las pages
+declaran fallback y breadcrumbs mediante `PageHeader`, mientras las features
+propagan `returnState` al abrir un recurso. El estado persistible de listados
+pertenece a query params. Consulta `docs/FRONTEND_NAVIGATION.md`.

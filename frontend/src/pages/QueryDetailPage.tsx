@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Code2, FileJson2, Network } from "lucide-react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -8,10 +8,14 @@ import { PageSection } from "../components/layout/PageSection";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { getQuery } from "../features/queries/api/queriesApi";
 import { useAuth } from "../features/auth/context";
+import { routes } from "../app/router/routes";
+import { returnState } from "../shared/navigation/navigationState";
 
 export function QueryDetailPage() {
   const { id = "" } = useParams();
   const { hasPermission } = useAuth();
+  const location = useLocation();
+  const origin = returnState(location);
   const query = useQuery({ queryKey: ["query", id], queryFn: () => getQuery(id) });
   if (query.isPending)
     return (
@@ -35,20 +39,26 @@ export function QueryDetailPage() {
         eyebrow={`AST ${item.schema_version}`}
         title={item.name}
         description={item.description || "Borrador universal sin descripción."}
+        backAction={{ fallback: routes.queries.list(), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Consultas", to: routes.queries.list() },
+          { label: item.name },
+        ]}
         actions={
           <div className="flex gap-2">
-            <Link className="btn-primary" to={`/queries/${item.id}/builder`}>
+            <Link className="btn-primary" state={origin} to={routes.queries.builder(item.id)}>
               <Network className="size-4" />
               Constructor
             </Link>
             {hasPermission("queries.compile") && item.validation_status === "valid" ? (
-              <Link className="btn-secondary" to={`/queries/${item.id}/compile`}>
+              <Link className="btn-secondary" state={origin} to={routes.queries.compile(item.id)}>
                 <Code2 className="size-4" />
                 Compilar
               </Link>
             ) : null}
             {hasPermission("queries.update") ? (
-              <Link className="btn-secondary" to={`/queries/${item.id}/edit-json`}>
+              <Link className="btn-secondary" state={origin} to={routes.queries.editJson(item.id)}>
                 <FileJson2 className="size-4" />
                 Editar JSON
               </Link>

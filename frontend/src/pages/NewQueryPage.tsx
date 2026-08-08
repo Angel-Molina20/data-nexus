@@ -8,9 +8,15 @@ import type { QueryDocument } from "../features/queries/types";
 import { listConnections } from "../features/connections/api/connectionsApi";
 import { listSchemaEntities } from "../features/schema/api/schemaApi";
 import { createQuery } from "../features/queries/api/queriesApi";
+import { routes } from "../app/router/routes";
+import { useReturnNavigation } from "../shared/hooks/useReturnNavigation";
+import { useUnsavedChangesGuard } from "../shared/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "../components/navigation/UnsavedChangesDialog";
+import { Link } from "react-router";
 
 export function NewQueryPage() {
   const navigate = useNavigate();
+  const { returnTo } = useReturnNavigation(routes.queries.list());
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [connectionId, setConnectionId] = useState("");
@@ -25,6 +31,8 @@ export function NewQueryPage() {
     queryFn: () => listSchemaEntities(connectionId),
     enabled: Boolean(connectionId),
   });
+  const isDirty = Boolean(name || description || connectionId || entityId || template !== "empty");
+  const unsaved = useUnsavedChangesGuard(isDirty);
   const create = useMutation({
     mutationFn: () =>
       createQuery({
@@ -33,7 +41,9 @@ export function NewQueryPage() {
         document: initialDocument(connectionId, entityId, template),
       }),
     onSuccess: (item) => {
-      void navigate(`/queries/${item.id}/builder`);
+      unsaved.navigateWithoutPrompt(() => {
+        void navigate(routes.queries.builder(item.id), { state: { from: returnTo } });
+      });
     },
   });
   return (
@@ -42,6 +52,12 @@ export function NewQueryPage() {
         eyebrow="Borrador técnico"
         title="Nueva consulta"
         description="Selecciona una fuente y crea un AST inicial. No se generará SQL."
+        backAction={{ fallback: routes.queries.list(), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Consultas", to: routes.queries.list() },
+          { label: "Nueva consulta" },
+        ]}
       />
       <form
         className="max-w-3xl space-y-5 rounded-xl border bg-white p-6"
@@ -131,14 +147,24 @@ export function NewQueryPage() {
             No fue posible crear el borrador. Verifica acceso analyst y el catálogo.
           </p>
         ) : null}
-        <button
-          className="btn-primary"
-          disabled={!name || !connectionId || !entityId || create.isPending}
-          type="submit"
-        >
-          {create.isPending ? "Creando…" : "Crear borrador"}
-        </button>
+        <div className="flex flex-wrap justify-end gap-3">
+          <Link className="btn-secondary" to={returnTo}>
+            Cancelar
+          </Link>
+          <button
+            className="btn-primary"
+            disabled={!name || !connectionId || !entityId || create.isPending}
+            type="submit"
+          >
+            {create.isPending ? "Creando…" : "Crear borrador"}
+          </button>
+        </div>
       </form>
+      <UnsavedChangesDialog
+        onLeave={unsaved.leave}
+        onStay={unsaved.stay}
+        open={unsaved.isBlocked}
+      />
     </PageContainer>
   );
 }

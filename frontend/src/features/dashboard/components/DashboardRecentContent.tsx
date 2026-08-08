@@ -1,12 +1,13 @@
 import { Database, FileBarChart, PlayCircle, SearchCode } from "lucide-react";
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 
 import { Badge, type BadgeVariant } from "../../../components/ui/Badge";
 import { StatusIndicator } from "../../../components/ui/StatusIndicator";
 import { formatDuration, formatNumber, formatRelativeDate } from "../../../shared/utils/formatters";
 import type { DashboardSummary } from "../types";
 import { RecentResourcePanel } from "./RecentResourcePanel";
+import { returnState } from "../../../shared/navigation/navigationState";
 
 const executionVariants: Record<string, BadgeVariant> = {
   completed: "success",
@@ -44,6 +45,7 @@ export function DashboardRecentContent({
   data: DashboardSummary;
   hasPermission: (permission: string) => boolean;
 }) {
+  const origin = returnState(useLocation());
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       {data.queries.available ? (
@@ -62,6 +64,7 @@ export function DashboardRecentContent({
                 <Link
                   className="dashboard-resource-row"
                   key={query.id}
+                  state={origin}
                   to={`/queries/${query.id}/builder`}
                 >
                   <ResourceIcon>
@@ -132,6 +135,7 @@ export function DashboardRecentContent({
                 <Link
                   className="dashboard-resource-row"
                   key={connection.id}
+                  state={origin}
                   to={`/connections/${connection.id}`}
                 >
                   <ResourceIcon>
@@ -179,6 +183,7 @@ export function DashboardRecentContent({
                 <Link
                   className="dashboard-resource-row"
                   key={report.id}
+                  state={origin}
                   to={`/reports/${report.id}`}
                 >
                   <ResourceIcon>

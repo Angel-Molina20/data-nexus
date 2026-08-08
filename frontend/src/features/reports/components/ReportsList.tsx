@@ -3,13 +3,21 @@ import { Link } from "react-router";
 import { StatusBadge } from "../../../components/ui/StatusBadge";
 import type { Report } from "../types";
 import type { ReportAction } from "../hooks/useReportsPage";
+import type { ReturnNavigationState } from "../../../shared/navigation/navigationState";
+import { routes } from "../../../app/router/routes";
 
 interface ReportsListProps {
   reports: Report[];
   onAction: (id: string, action: ReportAction) => void;
   onConfirmAction: (id: string, action: "archive" | "delete") => void;
+  navigationState: ReturnNavigationState;
 }
-export function ReportsList({ reports, onAction, onConfirmAction }: ReportsListProps) {
+export function ReportsList({
+  reports,
+  onAction,
+  onConfirmAction,
+  navigationState,
+}: ReportsListProps) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
       {reports.map((report) => (
@@ -31,11 +39,19 @@ export function ReportsList({ reports, onAction, onConfirmAction }: ReportsListP
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link className="btn-secondary" to={`/reports/${report.id}`}>
+            <Link
+              className="btn-secondary"
+              state={navigationState}
+              to={routes.reports.detail(report.id)}
+            >
               <Eye className="size-4" />
               Abrir
             </Link>
-            <Link className="btn-secondary" to={`/reports/${report.id}/edit`}>
+            <Link
+              className="btn-secondary"
+              state={navigationState}
+              to={routes.reports.edit(report.id)}
+            >
               Editar
             </Link>
             {report.status === "draft" ? (

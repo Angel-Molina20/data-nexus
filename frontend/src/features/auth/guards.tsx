@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { App } from "../../App";
 import { useAuth } from "./context";
+import { BackButton } from "../../components/navigation/BackButton";
 
 export function ProtectedRoute() {
   const auth = useAuth();
@@ -29,6 +30,9 @@ export function PermissionGuard({
       <div className="state-message">
         <h1 className="text-2xl font-bold">403</h1>
         <p>No tienes permiso para ver esta página.</p>
+        <div className="mt-4 flex justify-center">
+          <BackButton fallback="/" label="Volver" />
+        </div>
       </div>
     );
   return children;

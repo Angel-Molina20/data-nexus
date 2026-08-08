@@ -6,9 +6,9 @@ import { Link, useNavigate, useParams } from "react-router";
 import { EmptyState } from "../components/feedback/EmptyState";
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
-import { BackLink } from "../components/navigation/BackLink";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { EntityDetailPanel } from "../features/schema/EntityDetailPanel";
+import { routes } from "../app/router/routes";
 import {
   getSchemaSummary,
   listSchemaChanges,
@@ -93,9 +93,13 @@ export function SchemaExplorerPage() {
         eyebrow="Explorador de esquemas"
         title={`Esquema: ${metadata.connection_name}`}
         description={`${metadata.engine} ${metadata.raw_version ?? ""} · ${metadata.last_synchronized_at ? `Última sincronización ${new Date(metadata.last_synchronized_at).toLocaleString()}` : "Sin sincronizar"}`}
-        breadcrumb={
-          <BackLink label="Volver a conexión" to={`/connections/${id}`} variant="breadcrumb" />
-        }
+        backAction={{ fallback: routes.connections.detail(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: metadata.connection_name, to: routes.connections.detail(id) },
+          { label: "Esquema" },
+        ]}
         actions={
           <>
             <Link className="btn-secondary" to={`/connections/${id}/schema/synchronizations`}>

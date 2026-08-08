@@ -1,8 +1,13 @@
 import type { ReactNode } from "react";
 
+import { BackButton, type BackButtonProps } from "../navigation/BackButton";
+import { Breadcrumbs, type BreadcrumbItem } from "../navigation/Breadcrumbs";
+
 interface PageHeaderProps {
   actions?: ReactNode;
+  backAction?: BackButtonProps;
   breadcrumb?: ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
   description: string;
   eyebrow?: string;
   status?: ReactNode;
@@ -11,7 +16,9 @@ interface PageHeaderProps {
 
 export function PageHeader({
   actions,
+  backAction,
   breadcrumb,
+  breadcrumbs,
   description,
   eyebrow,
   status,
@@ -20,10 +27,11 @@ export function PageHeader({
   return (
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
       <div className="min-w-0">
-        {breadcrumb ? (
-          <nav aria-label="Migas de pan" className="mb-2 text-xs text-muted">
-            {breadcrumb}
-          </nav>
+        {backAction || breadcrumbs || breadcrumb ? (
+          <div className="mb-3 flex min-w-0 flex-wrap items-center gap-3">
+            {backAction ? <BackButton {...backAction} /> : null}
+            {breadcrumbs ? <Breadcrumbs items={breadcrumbs} /> : breadcrumb}
+          </div>
         ) : null}
         {eyebrow ? (
           <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">

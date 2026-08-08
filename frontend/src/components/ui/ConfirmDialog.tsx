@@ -7,6 +7,7 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   onConfirm: () => void;
   open: boolean;
+  supportingText?: string;
   title: string;
 }
 export function ConfirmDialog({
@@ -16,6 +17,7 @@ export function ConfirmDialog({
   onCancel,
   onConfirm,
   open,
+  supportingText = "Esta acción puede ser irreversible. Confirma que deseas continuar.",
   title,
 }: ConfirmDialogProps) {
   return (
@@ -37,9 +39,7 @@ export function ConfirmDialog({
       size="sm"
       title={title}
     >
-      <p className="text-body-small text-foreground-secondary">
-        Esta acción puede ser irreversible. Confirma que deseas continuar.
-      </p>
+      <p className="text-body-small text-foreground-secondary">{supportingText}</p>
     </Modal>
   );
 }

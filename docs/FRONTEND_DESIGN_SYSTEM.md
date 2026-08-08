@@ -173,6 +173,19 @@ cero. En móvil, las métricas y paneles pasan a una columna sin convertir los
 listados en tablas horizontales. El onboarding solo aparece cuando no existe una
 primera conexión y hay permiso para crearla.
 
+## Navegación contextual
+
+`PageHeader` compone `BackButton` y `Breadcrumbs`; no deben crearse cabeceras de
+navegación paralelas. `BackButton` usa un enlace semántico hacia un origen interno
+validado o el fallback del módulo. `Breadcrumbs` expone un `nav` accesible y
+marca la página actual con `aria-current="page"`.
+
+Los formularios y herramientas con cambios reales reutilizan
+`UnsavedChangesDialog` y `useUnsavedChangesGuard`. “Volver” conserva el origen,
+“Cancelar” descarta el flujo actual y “Cerrar” se reserva para superficies de
+herramienta. Consulta `docs/FRONTEND_NAVIGATION.md` para rutas, estado URL y
+reglas de seguridad.
+
 ## Límites de la fase 13
 
 No se rediseñaron login, dashboard, navegación funcional ni constructor. Las

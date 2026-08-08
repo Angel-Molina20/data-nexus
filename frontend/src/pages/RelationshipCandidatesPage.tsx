@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, GitFork, ScanSearch, X } from "lucide-react";
+import { Check, GitFork, ScanSearch, X } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
@@ -11,6 +11,7 @@ import {
   listRelationshipCandidates,
   rejectRelationshipCandidate,
 } from "../features/relationships/api/relationshipsApi";
+import { routes } from "../app/router/routes";
 
 export function RelationshipCandidatesPage() {
   const { id = "" } = useParams();
@@ -44,12 +45,18 @@ export function RelationshipCandidatesPage() {
         eyebrow="Relaciones inferidas"
         title="Sugerencias pendientes"
         description="Ninguna relación sugerida se activa sin confirmación administrativa."
+        backAction={{
+          fallback: routes.connections.relationships(id),
+          label: "Volver a relaciones",
+        }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: "Relaciones", to: routes.connections.relationships(id) },
+          { label: "Sugerencias" },
+        ]}
         actions={
           <>
-            <Link className="btn-secondary" to={`/connections/${id}/relationships`}>
-              <ArrowLeft className="size-4" />
-              Volver a relaciones
-            </Link>
             <button
               className="btn-primary"
               disabled={detect.isPending}

@@ -1,7 +1,11 @@
 import { CheckCircle2, Code2, FileJson2, Redo2, RotateCcw, Save, Undo2 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 
 import type { BuilderState } from "./state";
+import { BackButton } from "../../components/navigation/BackButton";
+import { Breadcrumbs } from "../../components/navigation/Breadcrumbs";
+import { routes } from "../../app/router/routes";
+import { returnState } from "../../shared/navigation/navigationState";
 
 export function QueryBuilderHeader({
   name,
@@ -30,8 +34,20 @@ export function QueryBuilderHeader({
   onRedo: () => void;
   onReset: () => void;
 }) {
+  const location = useLocation();
   return (
     <header className="border-b bg-white px-4 py-3">
+      <div className="mb-3 flex min-w-0 flex-wrap items-center gap-3">
+        <BackButton fallback={routes.queries.list()} label="Volver" />
+        <Breadcrumbs
+          items={[
+            { label: "Inicio", to: routes.dashboard() },
+            { label: "Consultas", to: routes.queries.list() },
+            { label: name },
+            { label: "Constructor" },
+          ]}
+        />
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="mr-auto">
           <div className="flex items-center gap-2">
@@ -74,7 +90,11 @@ export function QueryBuilderHeader({
           >
             <RotateCcw className="size-4" />
           </button>
-          <Link className="btn-secondary" to={`/queries/${state.queryId}/edit-json`}>
+          <Link
+            className="btn-secondary"
+            state={returnState(location)}
+            to={routes.queries.editJson(state.queryId)}
+          >
             <FileJson2 className="size-4" />
             JSON
           </Link>

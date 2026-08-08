@@ -40,6 +40,8 @@ export function getPageTitle(pathname: string): string {
   if (/^\/reports\/[^/]+$/.test(pathname)) return "Detalle de reporte";
   if (pathname === "/queries/new") return "Nueva consulta";
   if (/^\/queries\/[^/]+\/edit-json$/.test(pathname)) return "Editor JSON";
+  if (/^\/queries\/[^/]+\/builder$/.test(pathname)) return "Constructor visual";
+  if (/^\/queries\/[^/]+\/compile$/.test(pathname)) return "Compilación de consulta";
   if (/^\/queries\/[^/]+$/.test(pathname)) return "Detalle de consulta";
   if (pathname === "/account/change-password") return "Cambiar contraseña";
   if (pathname === "/settings/roles") return "Roles y permisos";
