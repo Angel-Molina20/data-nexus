@@ -14,6 +14,7 @@ venv/
 .coverage
 coverage.xml
 htmlcov/
+backend/storage/
 
 # Frontend
 node_modules/

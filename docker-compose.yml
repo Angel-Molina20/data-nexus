@@ -6,7 +6,7 @@ services:
       context: ./backend
       target: development
     env_file:
-      - .env
+      - ${DATANEXUS_ENV_FILE:-.env}
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
@@ -19,15 +19,17 @@ services:
       - --host
       - ${BACKEND_HOST:-0.0.0.0}
       - --port
-      - ${BACKEND_PORT:-8000}
+      - "8000"
       - --reload
     volumes:
       - ./backend:/app
       - report_exports:/app/storage/report-exports
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_HOST_PORT:-8000}:8000"
     depends_on:
-      postgres:
+      migrations:
+        condition: service_completed_successfully
+      redis:
         condition: service_healthy
       report-storage-init:
         condition: service_completed_successfully
@@ -44,12 +46,31 @@ services:
     networks:
       - datanexus-network
 
+  migrations:
+    build:
+      context: ./backend
+      target: development
+    env_file:
+      - ${DATANEXUS_ENV_FILE:-.env}
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - datanexus-network
+
   report-storage-init:
     build:
       context: ./backend
       target: development
     user: "0:0"
-    command: ["sh", "-c", "mkdir -p /app/storage/report-exports && chown 100:101 /app/storage/report-exports && chmod 700 /app/storage/report-exports"]
+    command: ["sh", "-c", "mkdir -p /app/storage/report-exports && chown datanexus:datanexus /app/storage/report-exports && chmod 700 /app/storage/report-exports"]
     volumes:
       - report_exports:/app/storage/report-exports
     restart: "no"
@@ -71,7 +92,7 @@ services:
       - "${FRONTEND_PORT:-5173}:5173"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test:
         - CMD
@@ -86,7 +107,7 @@ services:
       - datanexus-network
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.10-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -105,7 +126,7 @@ services:
       - datanexus-network
 
   redis:
-    image: redis:7.4-alpine
+    image: redis:7.4.9-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
@@ -144,7 +165,7 @@ services:
       - datanexus-network
 
   mysql8:
-    image: mysql:8.4
+    image: mysql:8.4.10
     environment:
       MYSQL_DATABASE: ${MYSQL8_DATABASE}
       MYSQL_USER: ${MYSQL8_USER}
@@ -178,5 +199,4 @@ volumes:
 
 networks:
   datanexus-network:
-    name: datanexus-network
     driver: bridge
