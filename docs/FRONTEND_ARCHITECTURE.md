@@ -176,3 +176,18 @@ docker compose exec -T frontend pnpm build
 
 Todos los comandos se ejecutan dentro de Docker; no se requiere Node o pnpm en
 el host.
+
+## Auth y login
+
+La feature `auth` mantiene separadas sus responsabilidades:
+
+- `api/authApi.ts`: contrato HTTP existente;
+- `schemas/loginSchema.ts`: validación local del formulario;
+- `hooks/useLogin.ts`: mutación, clasificación segura de errores, caché y
+  redirección;
+- `components/`: layout, identidad, formulario y campo de contraseña;
+- `pages/LoginPage.tsx`: composición y estados de restauración/sesión existente.
+
+Usuario y contraseña no pertenecen a estado global. La restauración de sesión se
+resuelve antes de renderizar el formulario y las rutas públicas/protegidas siguen
+siendo responsabilidad del router y `AuthProvider`.

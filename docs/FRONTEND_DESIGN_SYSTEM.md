@@ -141,6 +141,24 @@ docker compose exec -T frontend pnpm test
 docker compose exec -T frontend pnpm build
 ```
 
+## Autenticación
+
+`AuthLayout` ofrece una composición de autenticación dividida y acotada para
+escritorio. El panel de identidad puede contener branding y una representación
+conceptual ligera; en tamaños menores se oculta para dar prioridad al formulario.
+No deben añadirse enlaces o controles de autenticación sin un flujo backend real.
+
+`LoginForm` compone las primitivas existentes (`Card`, `Input`, `IconButton`,
+`Button` y `Alert`) y delega la coordinación a `useLogin`. Los campos conservan
+`name`, labels y autocomplete adecuados para gestores de contraseñas. Los errores
+de campo permanecen junto al control y los errores de credenciales/red se muestran
+dentro del formulario con mensajes seguros. La contraseña nunca sale del estado
+local administrado por React Hook Form.
+
+El panel visual es exclusivo del login y usa CSS/SVG propio sin recursos remotos.
+Debe respetarse `prefers-reduced-motion`, `100dvh` con fallback y el ancho máximo
+del shell para pantallas ultra-wide.
+
 ## Límites de la fase 13
 
 No se rediseñaron login, dashboard, navegación funcional ni constructor. Las
