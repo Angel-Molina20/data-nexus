@@ -5,6 +5,7 @@ import { useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
+import { BackLink } from "../components/navigation/BackLink";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import {
   getSemanticEntity,
@@ -45,7 +46,7 @@ export function SemanticCatalogPage() {
       await client.invalidateQueries({ queryKey: ["semantic-entity", id, selected] });
     },
   });
-  return <PageContainer><PageHeader eyebrow="Capa semántica" title="Catálogo semántico" description="Los nombres de negocio complementan el catálogo físico y sobreviven a las resincronizaciones." /><div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]"><aside className="rounded-xl border border-slate-200 bg-white p-3"><input className="field mb-3" placeholder="Buscar entidad…" />{list.data?.items.map((item) => <button className={`mb-1 flex w-full items-center justify-between rounded-lg p-3 text-left ${selected === item.id ? "bg-blue-50 text-blue-800" : "hover:bg-slate-50"}`} key={item.id} onClick={() => { setSelected(item.id); }}><span><strong className="block text-sm">{item.display_name}</strong><small>{item.physical_name}</small></span>{item.sensitive_fields ? <ShieldAlert className="size-4 text-amber-600" /> : item.is_visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</button>)}</aside>{detail.data ? <SemanticEditor entity={detail.data} saving={saveEntity.isPending || saveField.isPending} onSaveEntity={(payload) => { saveEntity.mutate(payload); }} onSaveField={(fieldId, payload) => { saveField.mutate({ fieldId, payload }); }} /> : <p className="state-message rounded-xl border border-slate-200 bg-white">Selecciona una entidad.</p>}</div></PageContainer>;
+  return <PageContainer><PageHeader eyebrow="Capa semántica" title="Catálogo semántico" description="Los nombres de negocio complementan el catálogo físico y sobreviven a las resincronizaciones." breadcrumb={<BackLink label="Volver a conexión" to={`/connections/${id}`} variant="breadcrumb" />} /><div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]"><aside className="rounded-xl border border-slate-200 bg-white p-3"><input className="field mb-3" placeholder="Buscar entidad…" />{list.data?.items.map((item) => <button className={`mb-1 flex w-full items-center justify-between rounded-lg p-3 text-left ${selected === item.id ? "bg-blue-50 text-blue-800" : "hover:bg-slate-50"}`} key={item.id} onClick={() => { setSelected(item.id); }}><span><strong className="block text-sm">{item.display_name}</strong><small>{item.physical_name}</small></span>{item.sensitive_fields ? <ShieldAlert className="size-4 text-amber-600" /> : item.is_visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</button>)}</aside>{detail.data ? <SemanticEditor entity={detail.data} saving={saveEntity.isPending || saveField.isPending} onSaveEntity={(payload) => { saveEntity.mutate(payload); }} onSaveField={(fieldId, payload) => { saveField.mutate({ fieldId, payload }); }} /> : <p className="state-message rounded-xl border border-slate-200 bg-white">Selecciona una entidad.</p>}</div></PageContainer>;
 }
 
 function SemanticEditor({ entity, saving, onSaveEntity, onSaveField }: {

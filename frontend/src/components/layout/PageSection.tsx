@@ -8,11 +8,11 @@ interface PageSectionProps {
 
 export function PageSection({ children, description, title }: PageSectionProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-lg border border-border bg-surface p-5 shadow-sm sm:p-6">
       {title ? (
         <div className="mb-5">
-          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-          {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
         </div>
       ) : null}
       {children}

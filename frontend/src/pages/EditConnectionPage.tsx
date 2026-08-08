@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router";
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
 import { PageSection } from "../components/layout/PageSection";
+import { BackLink } from "../components/navigation/BackLink";
 import { ConnectionFields } from "../features/connections/ConnectionFields";
 import { editConnectionSchema } from "../features/connections/schema";
 import type { ConnectionFormData } from "../features/connections/types";
@@ -40,7 +41,7 @@ export function EditConnectionPage() {
   if (query.isPending) return <PageContainer><p className="state-message">Cargando…</p></PageContainer>;
   return (
     <PageContainer>
-      <PageHeader title="Editar conexión" description="Los cambios técnicos se prueban antes de guardarse." />
+      <PageHeader title="Editar conexión" description="Los cambios técnicos se prueban antes de guardarse." breadcrumb={<BackLink label="Volver a conexión" to={`/connections/${id}`} variant="breadcrumb" />} />
       <PageSection>
         <form className="grid gap-7" onSubmit={(event) => { void form.handleSubmit((data) => { update.mutate(data); })(event); }}>
           <ConnectionFields register={form.register} errors={form.formState.errors} passwordOptional />

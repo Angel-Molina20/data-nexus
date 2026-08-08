@@ -81,5 +81,6 @@ describe("RelationshipCandidatesPage", () => {
     expect(await screen.findByText("90% confianza")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Rechazar" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Volver a relaciones" })).toHaveAttribute("href", "/connections/test/relationships");
   });
 });
