@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–14 están completadas; la rama de
-trabajo actual corresponde a la **Fase 15**, arquitectura y legibilidad del
-backend.
+Actualizado: 8 de agosto de 2026. Las Fases 0–16 están completadas; la última
+entrega corresponde a la **Fase 16**, rediseño visual y experiencia de usuario
+del login.
 
 ## 1. Objetivo general
 
@@ -667,3 +667,45 @@ Estado: **completada el 8 de agosto de 2026**.
 - Deuda revisada y no fragmentada artificialmente: relaciones y repositorios de
   schema/semántica siguen extensos; el compilador y adaptador MySQL son cohesivos
   pero requieren extracción futura acompañada de pruebas específicas.
+
+## 16. Fase 16 — rediseño visual y experiencia de login
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- El antiguo formulario aislado fue reemplazado por una composición intencional
+  de dos paneles: identidad y flujo conceptual de datos en escritorio, y Card de
+  acceso prioritaria. En tablet/móvil se oculta el panel decorativo y permanece
+  el branding esencial dentro del formulario.
+- `LoginPage` quedó limitada a composición, restauración de sesión y redirección.
+  `AuthLayout`, `LoginBrandPanel`, `LoginForm` y `PasswordField` separan layout,
+  identidad, formulario y visibilidad de contraseña; `useLogin` coordina API,
+  caché y navegación; el schema Zod vive junto a auth.
+- El formulario reutiliza `Card`, `Input`, `IconButton`, `Button`, `Alert` y
+  `LoadingState`. Mantiene HTML semántico, Enter, autocomplete compatible con
+  password managers, errores asociados, foco del primer campo inválido y bloqueo
+  de envíos simultáneos.
+- Las credenciales incorrectas, indisponibilidad de red y errores inesperados se
+  presentan con mensajes seguros distintos. No se muestran detalles internos ni
+  se almacenan credenciales fuera del formulario.
+- La cookie HttpOnly, CSRF, endpoint y payload de autenticación no cambiaron. Una
+  sesión válida se resuelve antes de mostrar el formulario. El login correcto
+  vuelve a la ruta protegida solicitada, o al dashboard; el cambio obligatorio de
+  contraseña conserva prioridad.
+- `Recordarme`, recuperación de contraseña y registro público se omitieron porque
+  no cuentan con soporte real. La expiración conserva el flujo existente de
+  invalidar sesión y volver a `/login`, pero no muestra un texto específico porque
+  el contrato actual no comunica la causa de la pérdida de sesión.
+- Pruebas unitarias/de integración cubren validación, foco, visibilidad de
+  contraseña, carga, doble submit, errores, caché, redirección y restauración de
+  sesión. La suite final aprobó 40 pruebas en 15 archivos. Dos E2E en Google
+  Chrome cubren credenciales inválidas y login correcto con redirección.
+- El layout usa `100dvh` con fallback, ancho máximo ultra-wide, reducción por baja
+  altura, ausencia de scroll horizontal y respeto a `prefers-reduced-motion`.
+- Prettier, ESLint, TypeScript forzado sin caché y build Vite finalizaron
+  correctamente dentro de Docker. El build conserva el aviso no bloqueante del
+  chunk principal (812.63 kB), cuya optimización corresponde a una fase futura.
+- Se revisaron capturas reales a 1920×1080, 1440×900, 1366×768, 1024×768,
+  768×900 y 390×844 sin recortes ni scroll horizontal. La imagen Chromium de
+  Playwright dentro de Alpine conserva la limitación glibc ya documentada; Google
+  Chrome del host se usó únicamente para E2E y revisión visual. Edge y Firefox
+  son compatibles por diseño, pero no fueron probados realmente en esta fase.

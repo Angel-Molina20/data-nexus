@@ -248,6 +248,103 @@ textarea:disabled {
   .metric-card strong {
     @apply text-xl font-bold tabular-nums text-foreground;
   }
+
+  .auth-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+    @apply relative overflow-x-hidden bg-background p-0 lg:p-5;
+  }
+  .auth-shell::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 opacity-70;
+    background-image:
+      radial-gradient(circle at 78% 14%, rgb(37 99 235 / 0.12), transparent 24rem),
+      radial-gradient(circle at 92% 86%, rgb(14 165 233 / 0.09), transparent 20rem);
+  }
+  .auth-shell__content {
+    @apply relative mx-auto grid min-h-[100dvh] w-full max-w-[112rem] overflow-hidden bg-surface lg:min-h-[calc(100dvh-2.5rem)] lg:grid-cols-[minmax(31rem,1.08fr)_minmax(30rem,0.92fr)] lg:rounded-2xl lg:border lg:border-border lg:shadow-lg;
+  }
+  .auth-shell__brand {
+    @apply relative hidden overflow-hidden bg-[#071a34] p-10 lg:block xl:p-14;
+  }
+  .auth-shell__brand::before,
+  .auth-shell__brand::after {
+    content: "";
+    @apply pointer-events-none absolute rounded-full;
+  }
+  .auth-shell__brand::before {
+    width: 28rem;
+    height: 28rem;
+    right: -12rem;
+    top: -14rem;
+    background: rgb(37 99 235 / 0.2);
+    filter: blur(1px);
+  }
+  .auth-shell__brand::after {
+    width: 22rem;
+    height: 22rem;
+    bottom: -15rem;
+    left: -8rem;
+    border: 1px solid rgb(96 165 250 / 0.18);
+  }
+  .auth-shell__brand > * {
+    @apply relative z-10;
+  }
+  .auth-shell__form {
+    @apply relative grid min-h-[100dvh] place-items-center px-5 py-8 sm:px-10 lg:min-h-0 lg:px-12 lg:py-10 xl:px-20;
+  }
+  .auth-login-card {
+    @apply rounded-xl border-border shadow-md lg:shadow-sm;
+  }
+  .auth-data-flow {
+    @apply relative mt-10 h-56 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm;
+  }
+  .auth-data-flow__lines {
+    @apply absolute inset-0 size-full;
+  }
+  .auth-data-flow__lines path {
+    fill: none;
+    stroke: rgb(96 165 250 / 0.45);
+    stroke-width: 2;
+    stroke-dasharray: 5 7;
+  }
+  .auth-data-flow__node {
+    @apply absolute flex min-w-24 items-center gap-2 rounded-lg border border-white/15 bg-[#102846] px-3 py-2.5 text-sm font-medium text-slate-200 shadow-md;
+  }
+  .auth-data-flow__node svg {
+    @apply text-blue-300;
+  }
+  .auth-data-flow__node--source {
+    left: 5%;
+    top: 40%;
+  }
+  .auth-data-flow__node--query {
+    left: 42%;
+    top: 13%;
+  }
+  .auth-data-flow__node--model {
+    bottom: 13%;
+    left: 42%;
+  }
+  .auth-data-flow__node--result {
+    right: 4%;
+    top: 40%;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 1024px) {
+  .auth-shell__brand {
+    @apply p-8;
+  }
+  .auth-data-flow {
+    @apply mt-6 h-44;
+  }
+  .auth-shell__brand h1 {
+    @apply text-3xl;
+  }
+  .auth-shell__brand .my-auto {
+    @apply py-6;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
