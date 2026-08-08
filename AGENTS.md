@@ -161,6 +161,10 @@ Las relaciones inferidas deben mostrarse como sugerencias y requerir confirmaci√
 * Evitar estilos duplicados.
 * Mantener rutas y funcionalidades divididas por features.
 * Corregir errores de consola y TypeScript antes de terminar una tarea.
+* Utilizar pnpm y ejecutar sus comandos dentro del contenedor frontend.
+* No ejecutar npm install ni pnpm install en el host.
+* No versionar node_modules ni depender de dependencias instaladas en el host.
+* Mantener el flujo Docker portable entre Linux, Windows y WSL2.
 
 ## Dise√±o visual
 

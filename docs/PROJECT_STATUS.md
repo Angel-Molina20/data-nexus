@@ -1,7 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 1 de agosto de 2026. Este documento describe la rama de trabajo de
-la **Fase 9**, construida sobre `main` en `6d06ffd` (merge de la Fase 8).
+Actualizado: 8 de agosto de 2026. Las Fases 0–10 están integradas en `main`; la
+rama de trabajo actual corresponde a la **Fase 11**, portabilidad Docker del
+frontend y entorno reproducible.
 
 ## 1. Objetivo general
 
@@ -11,9 +12,9 @@ convertirlas de forma segura a consultas parametrizadas. El diseño busca que el
 núcleo sea multifuente: MySQL es el primer adaptador, pero los contratos deben
 permitir PostgreSQL, SQL Server, Oracle, MongoDB, APIs y archivos.
 
-El producto ya ejecuta consultas de solo lectura desde el AST validado y
-presenta resultados paginados. Guardar reportes y exportarlos permanece para
-fases posteriores.
+El producto ejecuta consultas de solo lectura desde el AST validado, presenta
+resultados paginados y ofrece reportes reutilizables exportables a CSV, XLSX y
+PDF.
 
 ## 2. Arquitectura y tecnologías actuales
 
@@ -226,10 +227,9 @@ paso 9 de la lista histórica de `AGENTS.md`.
 ### Git
 
 - Rama: `main`.
-- Base revisada: `6d06ffd`, también en `origin/main`.
-- El árbol contiene la implementación local completa de la Fase 9 pendiente de
-  commit; `AGENTS.md` y la creación inicial de este documento ya existían antes
-  de comenzar la fase.
+- Base revisada: `5a6f139`, también en `origin/main`.
+- La Fase 11 se desarrolla sobre la integración completa de reportes y
+  exportaciones.
 
 ### Backend
 
@@ -253,12 +253,10 @@ paso 9 de la lista histórica de `AGENTS.md`.
 - El diseño conserva el shell SaaS de la referencia y React Flow está activo en
   relaciones y constructor.
 
-## 7. Próxima fase
+## 7. Fase actual
 
-La siguiente fase debe ser **Fase 10: reportes reutilizables** sobre consultas y
-metadatos de ejecución. Debe reutilizar los contratos de columnas y resultados,
-sin almacenar datasets completos por defecto. Las exportaciones definitivas,
-programaciones y dashboards avanzados deben permanecer para fases posteriores.
+La **Fase 11** abre el segundo roadmap y se limita a la portabilidad Docker del
+frontend. No altera funcionalidades del producto ni la arquitectura backend.
 
 ## 8. Archivos principales para una nueva sesión
 
@@ -481,3 +479,31 @@ S3/MinIO, dashboards, gráficos ni diseñador libre.
 El backend continúa siendo la única capa que valida AST, resuelve parámetros y
 compila SQL parametrizado de solo lectura. Los reportes no almacenan resultados
 completos y las funcionalidades de las Fases 0–9 conservan sus contratos.
+
+## 11. Fase 11 — portabilidad Docker del frontend
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- Node queda fijado en 22.17.0 sobre Alpine 3.22 y pnpm en 10.13.1 mediante
+  Corepack y `packageManager`.
+- `frontend_node_modules` aísla completamente las dependencias del host. El
+  store de pnpm permanece separado dentro de la imagen y el contenedor.
+- Un entrypoint POSIX calcula la huella de `package.json` y `pnpm-lock.yaml`,
+  instala con `--frozen-lockfile` solo al cambiar y ejecuta Vite como usuario
+  no root `node`.
+- No se mapea el UID/GID del host. La preparación privilegiada se limita a los
+  directorios Docker de dependencias; el código fuente no recibe `chown`.
+- Vite usa `backend:8000` en la red Docker. El polling es opt-in mediante
+  `VITE_USE_POLLING`; el healthcheck permite la inicialización inicial.
+- `.gitattributes` fuerza LF en scripts y archivos de configuración de texto.
+- Linux se validará en el entorno actual. Windows Docker Desktop y WSL2 son
+  compatibles por diseño, pendientes de validación manual real.
+- La operación y troubleshooting están en
+  `docs/FRONTEND_DOCKER_PORTABILITY.md`.
+- Validación Linux: `docker compose config`, build normal y sin caché, arranque
+  con volumen frontend eliminado, proxy al backend, healthcheck, reinicio sin
+  reinstalación, lint, TypeScript, 23 pruebas Vitest y build correctos.
+- La salida de Vite y los `tsbuildinfo` se dirigen a `/tmp`, evitando artefactos
+  del contenedor con propietarios incompatibles sobre el bind mount.
+- Windows Docker Desktop y WSL2 no fueron probados realmente; permanecen como
+  compatibles por diseño y pendientes de validación manual.
