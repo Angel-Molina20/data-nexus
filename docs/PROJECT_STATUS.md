@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–11 están completadas; la rama de
-trabajo actual corresponde a la **Fase 12**, portabilidad Docker del backend e
-infraestructura.
+Actualizado: 8 de agosto de 2026. Las Fases 0–12 están completadas; la rama de
+trabajo actual corresponde a la **Fase 13**, sistema de diseño y base visual del
+frontend.
 
 ## 1. Objetivo general
 
@@ -255,8 +255,8 @@ paso 9 de la lista histórica de `AGENTS.md`.
 
 ## 7. Fase actual
 
-La **Fase 12** continúa el segundo roadmap con portabilidad Docker del backend,
-migraciones, servicios y volúmenes, sin alterar funcionalidades del producto.
+La **Fase 13** inicia la modernización visual con tokens semánticos y componentes
+reutilizables, sin rediseñar todavía las pantallas funcionales.
 
 ## 8. Archivos principales para una nueva sesión
 
@@ -541,3 +541,48 @@ Estado: **completada el 8 de agosto de 2026**.
   `docker compose up -d`. No elimina volúmenes ni requiere borrar datos.
 - Guía de operación, migraciones, volúmenes, reset y troubleshooting:
   `docs/BACKEND_DOCKER_PORTABILITY.md`.
+
+## 13. Fase 13 — sistema de diseño y base visual del frontend
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- Tailwind CSS 4 continúa como única solución de estilos. Variables CSS con
+  prefijo `--dn-` definen colores semánticos, tipografía, radios y sombras;
+  `@theme inline` los expone como utilidades semánticas.
+- El tema claro es el único modo activo. Los tokens de superficie/texto están
+  preparados para dark mode, pero no existe selector y no se declara soporte
+  funcional todavía.
+- Se incorporaron primitivas tipadas para acciones, formularios, Card, Panel,
+  Badge, Alert, estados de feedback, Modal, ConfirmDialog, Drawer, Tabs, tabla,
+  paginación, toolbar, búsqueda, código y detalles técnicos.
+- `AppLayout`, `PageContainer`, `PageHeader`, `PageSection`, `TopHeader`,
+  `StatusBadge` y `EmptyState` consumen ya la base; las clases históricas siguen
+  funcionando sobre tokens para permitir migración gradual sin rediseño masivo.
+- La revisión visual posterior corrigió el contenido visible de `IconButton`,
+  separación entre etiqueta/estado y etiqueta/métrica, quiebre seguro de SQL
+  mode y navegación de retorno desde detalle, edición, esquema, relaciones,
+  semántica y sugerencias. Los regresos apuntan al padre lógico y no dependen
+  del historial del navegador.
+- En el detalle de conexión, el regreso se presenta como breadcrumb y las
+  operaciones probar/editar/eliminar se agrupan en un menú contextual; esquema,
+  relaciones y semántica permanecen como destinos visibles. El icono de cierre
+  de sesión usa el símbolo Power con 24 px y un trazo reforzado mediante una
+  regla CSS dedicada. El disparador de más acciones usa superficie, borde e
+  icono de 20 px para conservar contraste sobre el fondo de página.
+- Modal gestiona Escape, trap y restauración de foco; Tabs soporta flechas,
+  Home/End; los formularios enlazan label, ayuda y error mediante ARIA. El focus
+  visible es global y las animaciones respetan reducción de movimiento.
+- No se añadió ninguna dependencia. Lucide permanece como familia única de
+  iconos y no se introdujeron Storybook, librería UI ni proveedor de toast.
+- Pruebas específicas cubren Button, Input, Select, Modal, Tabs, Alert y estado
+  vacío. ESLint y TypeScript finalizaron correctamente, las 33 pruebas Vitest
+  aprobaron y el build Vite completó; permanece el aviso no bloqueante del chunk
+  principal de 797.87 kB previo a una futura estrategia de code splitting.
+- El contenedor frontend permaneció healthy y una revisión Chromium headless a
+  1440 × 1000 confirmó que la pantalla de acceso se sirve sin regresiones
+  visibles. No se ejecutó una suite de snapshots visuales porque no existe esa
+  infraestructura.
+- Documentación de uso y convenciones: `docs/FRONTEND_DESIGN_SYSTEM.md`.
+- Límites: no se rediseñaron login, dashboard, navegación funcional ni
+  constructor; la migración de controles específicos de cada feature queda para
+  sus fases visuales correspondientes.

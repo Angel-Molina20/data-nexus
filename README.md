@@ -7,6 +7,9 @@ La Fase 11 inicia el segundo roadmap con un frontend reproducible y portable en
 Docker; consulta [`docs/FRONTEND_DOCKER_PORTABILITY.md`](docs/FRONTEND_DOCKER_PORTABILITY.md).
 La Fase 12 extiende el mismo flujo reproducible al backend, migraciones y
 servicios; consulta [`docs/BACKEND_DOCKER_PORTABILITY.md`](docs/BACKEND_DOCKER_PORTABILITY.md).
+La Fase 13 incorpora la base visual reutilizable del frontend; tokens,
+componentes, accesibilidad y convenciones se documentan en
+[`docs/FRONTEND_DESIGN_SYSTEM.md`](docs/FRONTEND_DESIGN_SYSTEM.md).
 
 ## Alcance actual
 

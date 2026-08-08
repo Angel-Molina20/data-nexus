@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, GitFork, ScanSearch, X } from "lucide-react";
+import { ArrowLeft, Check, GitFork, ScanSearch, X } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
@@ -44,7 +44,7 @@ export function RelationshipCandidatesPage() {
         eyebrow="Relaciones inferidas"
         title="Sugerencias pendientes"
         description="Ninguna relación sugerida se activa sin confirmación administrativa."
-        actions={<button className="btn-primary" disabled={detect.isPending} onClick={() => { detect.mutate(); }}><ScanSearch className="size-4" /> {detect.isPending ? "Detectando…" : "Volver a detectar"}</button>}
+        actions={<><Link className="btn-secondary" to={`/connections/${id}/relationships`}><ArrowLeft className="size-4" />Volver a relaciones</Link><button className="btn-primary" disabled={detect.isPending} onClick={() => { detect.mutate(); }}><ScanSearch className="size-4" />{detect.isPending ? "Detectando…" : "Volver a detectar"}</button></>}
       />
       {candidates.isPending ? <p className="state-message">Cargando sugerencias…</p> : null}
       {candidates.isError ? <p className="alert-error">No fue posible cargar las sugerencias.</p> : null}

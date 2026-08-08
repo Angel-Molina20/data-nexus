@@ -5,7 +5,9 @@ import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
 import { PageSection } from "../components/layout/PageSection";
+import { BackLink } from "../components/navigation/BackLink";
 import { StatusBadge } from "../components/ui/StatusBadge";
+import { DropdownMenu } from "../components/ui/DropdownMenu";
 import { deleteConnection, getConnection, retestConnection } from "../services/connections";
 import { useAuth } from "../features/auth/context";
 import { listConnectionAccess } from "../services/auth";
@@ -29,7 +31,8 @@ export function ConnectionDetailPage() {
       <PageHeader
         title={connection.name}
         description={`${connection.host}:${String(connection.port)} · ${connection.database_name}`}
-        actions={<><Link className="btn-primary" to={`/connections/${id}/schema`}><TableProperties className="size-4" /> Explorar esquema</Link><Link className="btn-secondary" to={`/connections/${id}/relationships`}><GitFork className="size-4" /> Relaciones</Link><Link className="btn-secondary" to={`/connections/${id}/semantic-catalog`}><BookOpenText className="size-4" /> Semántica</Link><button className="btn-secondary" disabled={retest.isPending} onClick={() => { retest.mutate(); }}><RefreshCw className="size-4" />{retest.isPending ? "Probando…" : "Probar"}</button><Link className="btn-secondary" to={`/connections/${id}/edit`}><Pencil className="size-4" /> Editar</Link><button className="btn-danger" disabled={remove.isPending} onClick={() => { if (window.confirm("¿Eliminar esta configuración local?")) remove.mutate(); }}><Trash2 className="size-4" /> Eliminar</button></>}
+        breadcrumb={<BackLink label="Volver a conexiones" to="/connections" variant="breadcrumb" />}
+        actions={<><Link className="btn-primary" to={`/connections/${id}/schema`}><TableProperties className="size-4" /> Explorar esquema</Link><Link className="btn-secondary" to={`/connections/${id}/relationships`}><GitFork className="size-4" /> Relaciones</Link><Link className="btn-secondary" to={`/connections/${id}/semantic-catalog`}><BookOpenText className="size-4" /> Semántica</Link><DropdownMenu label="Más acciones" items={[{ label: retest.isPending ? "Probando conexión…" : "Probar conexión", disabled: retest.isPending, icon: <RefreshCw className={`size-4 ${retest.isPending ? "animate-spin" : ""}`} />, onSelect: () => { retest.mutate(); } }, { label: "Editar conexión", icon: <Pencil className="size-4" />, onSelect: () => { void navigate(`/connections/${id}/edit`); } }, { label: "Eliminar conexión", danger: true, disabled: remove.isPending, icon: <Trash2 className="size-4" />, onSelect: () => { if (window.confirm("¿Eliminar esta configuración local?")) remove.mutate(); } }]} /></>}
       />
       {(location.state as { message?: string } | null)?.message ? <p className="alert-success">{(location.state as { message: string }).message}</p> : null}
       {retest.isError ? <p className="alert-error">{retest.error.message}</p> : null}
@@ -49,7 +52,7 @@ export function ConnectionDetailPage() {
           <Detail label="Character set">{connection.character_set ?? "No informado"}</Detail>
           <Detail label="Collation">{connection.collation ?? "No informada"}</Detail>
           <Detail label="Zona horaria">{connection.timezone ?? "No informada"}</Detail>
-          <Detail label="SQL mode">{connection.sql_mode || "No informado"}</Detail>
+          <Detail breakAnywhere label="SQL mode">{connection.sql_mode || "No informado"}</Detail>
           <Detail label="Última prueba">{connection.last_tested_at ? new Date(connection.last_tested_at).toLocaleString() : "Nunca"}</Detail>
           <Detail label="Último error">{connection.last_error_message ?? "Ninguno"}</Detail>
         </dl>
@@ -62,6 +65,6 @@ export function ConnectionDetailPage() {
   );
 }
 
-function Detail({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><dt>{label}</dt><dd>{children}</dd></div>;
+function Detail({ breakAnywhere = false, label, children }: { breakAnywhere?: boolean; label: string; children: React.ReactNode }) {
+  return <div><dt>{label}</dt><dd className={breakAnywhere ? "break-all" : undefined}>{children}</dd></div>;
 }

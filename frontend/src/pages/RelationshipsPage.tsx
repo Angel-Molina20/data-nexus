@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
+import { BackLink } from "../components/navigation/BackLink";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { RelationshipGraph } from "../features/relationships/RelationshipGraph";
 import {
@@ -65,6 +66,7 @@ export function RelationshipsPage() {
         eyebrow="Catálogo de relaciones"
         title="Relaciones físicas y lógicas"
         description="Complementa las claves foráneas con relaciones confirmadas por un administrador."
+        breadcrumb={<BackLink label="Volver a conexión" to={`/connections/${id}`} variant="breadcrumb" />}
         actions={<>
           <button className="btn-secondary" disabled={detect.isPending} onClick={() => { detect.mutate(); }}>
             <ScanSearch className={`size-4 ${detect.isPending ? "animate-spin" : ""}`} />

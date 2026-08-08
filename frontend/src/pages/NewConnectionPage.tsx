@@ -38,7 +38,7 @@ export function NewConnectionPage() {
       {step === 1 ? (
         <PageSection title="Selecciona una fuente">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {sources.map((source, index) => <button key={source} className={`source-card ${index ? "opacity-55" : "border-blue-500 bg-blue-50"}`} disabled={index > 0} onClick={() => { setStep(2); }}><Database className="size-6" /><strong>{source}</strong><small>{index ? "Próximamente" : "Disponible"}</small></button>)}
+            {sources.map((source, index) => <button key={source} className={`source-card ${index ? "opacity-55" : "border-blue-500 bg-blue-50"}`} disabled={index > 0} onClick={() => { setStep(2); }}><Database className="size-6 shrink-0" /><span className="min-w-0"><strong className="block">{source}</strong><small className="mt-0.5 block text-muted">{index ? "Próximamente" : "Disponible"}</small></span></button>)}
           </div>
         </PageSection>
       ) : null}

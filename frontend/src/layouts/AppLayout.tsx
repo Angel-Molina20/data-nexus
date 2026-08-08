@@ -23,7 +23,7 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen min-w-0 bg-slate-50 text-slate-950">
+    <div className="flex min-h-screen min-w-0 bg-background text-foreground">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => {
@@ -46,7 +46,7 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
           }}
         />
         <main className="min-w-0 flex-1 overflow-x-hidden">
-          <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </main>
