@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–17 están completadas; la última
-entrega corresponde a la **Fase 17**, rediseño visual y funcional del dashboard
-principal.
+Actualizado: 8 de agosto de 2026. Las Fases 0–18 están completadas; la última
+entrega corresponde a la **Fase 18**, navegación, retorno contextual y
+preservación de contexto.
 
 ## 1. Objetivo general
 
@@ -748,3 +748,34 @@ Estado: **completada el 8 de agosto de 2026**.
 - Docker reconstruyó el backend y el stack quedó saludable. Para sustituir
   contenedores one-shot/red antiguos fue necesario `docker compose down` sin
   `-v`; no se eliminó ningún volumen persistente ni dato.
+
+## 18. Fase 18 — navegación y preservación de contexto
+
+Estado: **completada el 8 de agosto de 2026**.
+
+- `BackButton`, `Breadcrumbs` y `PageHeader` unifican retorno, jerarquía y
+  semántica accesible. Detalles, formularios, metadata, relaciones, constructor,
+  compilación y reportes ya no dependen de volver manualmente al dashboard.
+- Los builders en `app/router/routes.ts` evitan rutas dinámicas duplicadas. El
+  origen inmediato viaja en `location.state.from`, se acepta únicamente cuando
+  es una ruta interna segura y siempre existe un fallback estable por módulo.
+- Conexiones conservan `search`, `status`, `page` y `page_size` en URL; reportes
+  conservan los mismos parámetros; consultas conservan `page` y `page_size`.
+  La URL sobrevive a refresh y back/forward sin incluir SQL, credenciales ni
+  parámetros sensibles.
+- `useUnsavedChangesGuard` integra React Router, `beforeunload` y
+  `UnsavedChangesDialog`. Protege alta/edición de conexiones, consulta nueva,
+  JSON/constructor, reportes y relaciones manuales/polimórficas; un guardado
+  correcto limpia el estado y un error conserva el borrador.
+- El layout restaura scroll en navegación POP durante la sesión, comienza arriba
+  en nuevas pantallas y actualiza el título del documento. Las rutas hijas
+  mantienen activo su módulo mediante `NavLink`.
+- Pruebas unitarias cubren seguridad del retorno, builders, breadcrumbs,
+  BackButton y guard. Una prueba de listado verifica restauración de filtros y
+  paginación; el E2E cubre retorno contextual, historial, refresh, deep link y
+  confirmación/limpieza de cambios sin guardar.
+- Ejecuciones y exportaciones continúan embebidas en constructor y detalle de
+  reporte porque no existen rutas independientes. El rediseño futuro del
+  constructor deberá conservar el contrato de origen al separar esos paneles.
+- La estrategia y convenciones completas están en
+  `docs/FRONTEND_NAVIGATION.md`.

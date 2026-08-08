@@ -7,18 +7,33 @@ import { PageHeader } from "../components/layout/PageHeader";
 import type { SchemaEntity } from "../features/schema/types";
 import { createManualRelationship } from "../features/relationships/api/relationshipsApi";
 import { getSchemaEntity, listSchemaEntities } from "../features/schema/api/schemaApi";
+import { routes } from "../app/router/routes";
+import { useReturnNavigation } from "../shared/hooks/useReturnNavigation";
+import { useUnsavedChangesGuard } from "../shared/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "../components/navigation/UnsavedChangesDialog";
 
 type Pair = { source: string; target: string };
 
 export function ManualRelationshipPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { returnTo } = useReturnNavigation(routes.connections.relationships(id));
   const [sourceEntity, setSourceEntity] = useState("");
   const [targetEntity, setTargetEntity] = useState("");
   const [pairs, setPairs] = useState<Pair[]>([{ source: "", target: "" }]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [cardinality, setCardinality] = useState("many_to_one");
+  const isDirty = Boolean(
+    sourceEntity ||
+      targetEntity ||
+      name ||
+      description ||
+      cardinality !== "many_to_one" ||
+      pairs.length > 1 ||
+      pairs.some((pair) => pair.source || pair.target),
+  );
+  const unsaved = useUnsavedChangesGuard(isDirty);
   const entities = useQuery({
     queryKey: ["schema-entities", id, "manual"],
     queryFn: () => listSchemaEntities(id, { isActive: true }),
@@ -52,7 +67,9 @@ export function ManualRelationshipPage() {
         confirm_self_relationship: sourceEntity === targetEntity,
       }),
     onSuccess: () => {
-      void navigate(`/connections/${id}/relationships`);
+      unsaved.navigateWithoutPrompt(() => {
+        void navigate(routes.connections.relationships(id));
+      });
     },
   });
   const valid = Boolean(
@@ -72,6 +89,13 @@ export function ManualRelationshipPage() {
         eyebrow="Relación lógica"
         title="Nueva relación manual"
         description="Selecciona entidades y pares de campos activos pertenecientes a la misma conexión."
+        backAction={{ fallback: routes.connections.relationships(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: "Relaciones", to: routes.connections.relationships(id) },
+          { label: "Nueva relación manual" },
+        ]}
       />
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
@@ -175,7 +199,7 @@ export function ManualRelationshipPage() {
           <button
             className="btn-secondary"
             onClick={() => {
-              void navigate(-1);
+              void navigate(returnTo);
             }}
           >
             Cancelar
@@ -191,6 +215,11 @@ export function ManualRelationshipPage() {
           </button>
         </div>
       </section>
+      <UnsavedChangesDialog
+        onLeave={unsaved.leave}
+        onStay={unsaved.stay}
+        open={unsaved.isBlocked}
+      />
     </PageContainer>
   );
 }

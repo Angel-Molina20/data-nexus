@@ -6,6 +6,10 @@ import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
 import { createPolymorphicRelationship } from "../features/relationships/api/relationshipsApi";
 import { getSchemaEntity, listSchemaEntities } from "../features/schema/api/schemaApi";
+import { routes } from "../app/router/routes";
+import { useReturnNavigation } from "../shared/hooks/useReturnNavigation";
+import { useUnsavedChangesGuard } from "../shared/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "../components/navigation/UnsavedChangesDialog";
 
 interface Mapping {
   typeValue: string;
@@ -17,6 +21,7 @@ interface Mapping {
 export function PolymorphicRelationshipPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { returnTo } = useReturnNavigation(routes.connections.relationships(id));
   const [sourceEntity, setSourceEntity] = useState("");
   const [typeField, setTypeField] = useState("");
   const [idField, setIdField] = useState("");
@@ -24,6 +29,15 @@ export function PolymorphicRelationshipPage() {
   const [mappings, setMappings] = useState<Mapping[]>([
     { typeValue: "", targetEntity: "", targetField: "", displayName: "" },
   ]);
+  const isDirty = Boolean(
+    sourceEntity ||
+      typeField ||
+      idField ||
+      name !== "Documentable" ||
+      mappings.length > 1 ||
+      mappings.some((mapping) => Object.values(mapping).some(Boolean)),
+  );
+  const unsaved = useUnsavedChangesGuard(isDirty);
   const entities = useQuery({
     queryKey: ["schema-entities", id, "polymorphic"],
     queryFn: () => listSchemaEntities(id, { isActive: true }),
@@ -58,7 +72,9 @@ export function PolymorphicRelationshipPage() {
         })),
       }),
     onSuccess: () => {
-      void navigate(`/connections/${id}/relationships`);
+      unsaved.navigateWithoutPrompt(() => {
+        void navigate(routes.connections.relationships(id));
+      });
     },
   });
   const valid = useMemo(
@@ -85,6 +101,13 @@ export function PolymorphicRelationshipPage() {
         eyebrow="Relación polimórfica"
         title="Configurar discriminador y mappings"
         description="Cada mapping conserva obligatoriamente la condición de tipo y la comparación de identificador."
+        backAction={{ fallback: routes.connections.relationships(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: "Relaciones", to: routes.connections.relationships(id) },
+          { label: "Nueva relación polimórfica" },
+        ]}
       />
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-3">
@@ -254,7 +277,7 @@ export function PolymorphicRelationshipPage() {
           <button
             className="btn-secondary"
             onClick={() => {
-              void navigate(-1);
+              void navigate(returnTo);
             }}
           >
             Cancelar
@@ -270,6 +293,11 @@ export function PolymorphicRelationshipPage() {
           </button>
         </div>
       </section>
+      <UnsavedChangesDialog
+        onLeave={unsaved.leave}
+        onStay={unsaved.stay}
+        open={unsaved.isBlocked}
+      />
     </PageContainer>
   );
 }

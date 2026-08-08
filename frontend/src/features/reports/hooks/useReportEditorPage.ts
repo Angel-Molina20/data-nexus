@@ -11,18 +11,24 @@ import {
   type ReportDraft,
 } from "../model/reportEditor";
 import type { ReportColumn, ReportConfiguration } from "../types";
+import { useReturnNavigation } from "../../../shared/hooks/useReturnNavigation";
+import { useUnsavedChangesGuard } from "../../../shared/hooks/useUnsavedChangesGuard";
+import { routes } from "../../../app/router/routes";
 
 export function useReportEditorPage() {
   const { reportId } = useParams();
   const navigate = useNavigate();
   const isEditing = Boolean(reportId);
-  const queries = useQuery({ queryKey: ["queries"], queryFn: listQueries });
+  const fallback = isEditing ? routes.reports.detail(reportId ?? "") : routes.reports.list();
+  const { returnTo } = useReturnNavigation(fallback);
+  const queries = useQuery({ queryKey: ["queries"], queryFn: () => listQueries() });
   const report = useQuery({
     queryKey: ["report", reportId],
     queryFn: () => getReport(reportId ?? ""),
     enabled: isEditing,
   });
   const [draft, setDraft] = useState<ReportDraft>(emptyReportDraft);
+  const [baseline, setBaseline] = useState(() => JSON.stringify(emptyReportDraft));
   const selectedQuery = useMemo(
     () => queries.data?.items.find((query) => query.id === draft.queryId),
     [draft.queryId, queries.data],
@@ -58,7 +64,7 @@ export function useReportEditorPage() {
 
   useEffect(() => {
     if (!report.data) return;
-    setDraft({
+    const loadedDraft: ReportDraft = {
       columns: report.data.configuration.columns,
       description: report.data.description ?? "",
       footer: report.data.configuration.footer.text,
@@ -69,8 +75,13 @@ export function useReportEditorPage() {
       queryId: report.data.query_id,
       subtitle: report.data.configuration.header.subtitle ?? "",
       title: report.data.configuration.header.title,
-    });
+    };
+    setDraft(loadedDraft);
+    setBaseline(JSON.stringify(loadedDraft));
   }, [report.data]);
+
+  const isDirty = JSON.stringify(draft) !== baseline;
+  const unsaved = useUnsavedChangesGuard(isDirty);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -104,7 +115,13 @@ export function useReportEditorPage() {
           });
     },
     onSuccess: (savedReport) => {
-      void navigate(`/reports/${savedReport.id}`);
+      setBaseline(JSON.stringify(draft));
+      unsaved.navigateWithoutPrompt(() => {
+        const detailPath = routes.reports.detail(savedReport.id);
+        void navigate(detailPath, {
+          state: returnTo !== detailPath ? { from: returnTo } : undefined,
+        });
+      });
     },
   });
 
@@ -139,6 +156,7 @@ export function useReportEditorPage() {
   return {
     draft,
     isEditing,
+    isDirty,
     isValid,
     queries,
     report,
@@ -147,5 +165,7 @@ export function useReportEditorPage() {
     setColumns,
     updateDraft,
     updateParameter,
+    returnTo,
+    unsaved,
   };
 }

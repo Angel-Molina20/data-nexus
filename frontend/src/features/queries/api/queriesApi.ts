@@ -26,7 +26,8 @@ export const calculateQueryComplexity = (document: QueryDocument) =>
     method: "POST",
     body: JSON.stringify(document),
   });
-export const listQueries = () => apiRequest<SavedQueryList>("/queries");
+export const listQueries = (page = 1, pageSize = 25) =>
+  apiRequest<SavedQueryList>(`/queries?page=${String(page)}&page_size=${String(pageSize)}`);
 export const createQuery = (payload: {
   name: string;
   description: string | null;

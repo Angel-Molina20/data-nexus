@@ -12,6 +12,10 @@ import { ConnectionFields } from "../features/connections/ConnectionFields";
 import { connectionSchema } from "../features/connections/schema";
 import type { ConnectionFormData, TestResult } from "../features/connections/types";
 import { createConnection, testConnection } from "../features/connections/api/connectionsApi";
+import { routes } from "../app/router/routes";
+import { useReturnNavigation } from "../shared/hooks/useReturnNavigation";
+import { useUnsavedChangesGuard } from "../shared/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "../components/navigation/UnsavedChangesDialog";
 
 const sources = ["MySQL", "PostgreSQL", "SQL Server", "Oracle", "MongoDB", "API REST", "CSV"];
 
@@ -19,6 +23,7 @@ export function NewConnectionPage() {
   const [step, setStep] = useState(1);
   const [tested, setTested] = useState<TestResult | null>(null);
   const navigate = useNavigate();
+  const { returnTo } = useReturnNavigation(routes.connections.list());
   const form = useForm<ConnectionFormData>({
     resolver: zodResolver(connectionSchema),
     defaultValues: {
@@ -40,11 +45,14 @@ export function NewConnectionPage() {
       setStep(3);
     },
   });
+  const unsaved = useUnsavedChangesGuard(form.formState.isDirty);
   const create = useMutation({
     mutationFn: createConnection,
     onSuccess: (result) => {
-      void navigate(`/connections/${result.id}`, {
-        state: { message: "Conexión creada correctamente." },
+      unsaved.navigateWithoutPrompt(() => {
+        void navigate(routes.connections.detail(result.id), {
+          state: { from: returnTo, message: "Conexión creada correctamente." },
+        });
       });
     },
   });
@@ -67,6 +75,12 @@ export function NewConnectionPage() {
         title="Nueva conexión"
         description="Conecta una fuente MySQL en tres pasos seguros."
         eyebrow={`Paso ${String(step)} de 3`}
+        backAction={{ fallback: routes.connections.list(), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: "Nueva conexión" },
+        ]}
       />
       {step === 1 ? (
         <PageSection title="Selecciona una fuente">
@@ -177,9 +191,14 @@ export function NewConnectionPage() {
           </div>
         </PageSection>
       ) : null}
-      <Link className="text-sm text-slate-500 hover:text-slate-800" to="/connections">
+      <Link className="text-sm text-slate-500 hover:text-slate-800" to={returnTo}>
         Cancelar
       </Link>
+      <UnsavedChangesDialog
+        onLeave={unsaved.leave}
+        onStay={unsaved.stay}
+        open={unsaved.isBlocked}
+      />
     </PageContainer>
   );
 }

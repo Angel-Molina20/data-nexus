@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Clipboard, PlayCircle } from "lucide-react";
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -11,6 +11,7 @@ import {
   getCompilerCapabilities,
   getQuery,
 } from "../features/queries/api/queriesApi";
+import { routes } from "../app/router/routes";
 
 export function QueryCompilePage() {
   const { id = "" } = useParams();
@@ -44,11 +45,13 @@ export function QueryCompilePage() {
         eyebrow="Compilador MySQL"
         title={`Vista previa: ${query.data.name}`}
         description="Genera SQL parametrizado desde el AST validado, sin conectarse a MySQL ni ejecutar la consulta."
-        actions={
-          <Link className="btn-secondary" to={`/queries/${id}`}>
-            Volver al detalle
-          </Link>
-        }
+        backAction={{ fallback: routes.queries.detail(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Consultas", to: routes.queries.list() },
+          { label: query.data.name, to: routes.queries.detail(id) },
+          { label: "Compilación" },
+        ]}
       />
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border bg-white p-4">
         <StatusBadge variant={query.data.validation_status === "valid" ? "success" : "warning"}>

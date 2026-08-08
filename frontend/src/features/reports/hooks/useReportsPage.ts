@@ -1,17 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useSearchParams } from "react-router";
 
 import { archiveReport, deleteReport, listReports, publishReport } from "../api/reportsApi";
 
 export type ReportAction = "publish" | "archive" | "delete";
 
 export function useReportsPage() {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("search") ?? "";
+  const status = searchParams.get("status") ?? "";
+  const page = positiveInteger(searchParams.get("page"), 1);
+  const pageSize = positiveInteger(searchParams.get("page_size"), 20);
   const queryClient = useQueryClient();
   const reports = useQuery({
-    queryKey: ["reports", search, status],
-    queryFn: () => listReports(search, status),
+    queryKey: ["reports", search, status, page, pageSize],
+    queryFn: () => listReports(search, status, page, pageSize),
   });
   const action = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: ReportAction }) => {
@@ -29,5 +32,37 @@ export function useReportsPage() {
     if (window.confirm(message)) action.mutate({ id, name });
   };
 
-  return { action, confirmAction, filters: { search, status }, reports, setSearch, setStatus };
+  const updateParams = (patch: Record<string, string | number | null>) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      Object.entries(patch).forEach(([key, value]) => {
+        if (value === null || value === "") next.delete(key);
+        else next.set(key, String(value));
+      });
+      return next;
+    });
+  };
+  return {
+    action,
+    confirmAction,
+    filters: { page, pageSize, search, status },
+    reports,
+    setPage: (value: number) => {
+      updateParams({ page: value });
+    },
+    setPageSize: (value: number) => {
+      updateParams({ page: 1, page_size: value });
+    },
+    setSearch: (value: string) => {
+      updateParams({ page: 1, search: value });
+    },
+    setStatus: (value: string) => {
+      updateParams({ page: 1, status: value });
+    },
+  };
+}
+
+function positiveInteger(value: string | null, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }

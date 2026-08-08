@@ -2,18 +2,6 @@ import { useEffect } from "react";
 import type { Dispatch } from "react";
 import type { BuilderAction } from "../state";
 
-export function useUnsavedChangesWarning(isDirty: boolean) {
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (isDirty) event.preventDefault();
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [isDirty]);
-}
-
 export function useBuilderKeyboardShortcuts(dispatch: Dispatch<BuilderAction>) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

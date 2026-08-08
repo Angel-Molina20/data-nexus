@@ -5,7 +5,6 @@ import { useParams } from "react-router";
 
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
-import { BackLink } from "../components/navigation/BackLink";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import {
   getSemanticEntity,
@@ -13,6 +12,7 @@ import {
   updateSemanticEntity,
   updateSemanticField,
 } from "../features/relationships/api/relationshipsApi";
+import { routes } from "../app/router/routes";
 
 export function SemanticCatalogPage() {
   const { id = "" } = useParams();
@@ -53,9 +53,13 @@ export function SemanticCatalogPage() {
         eyebrow="Capa semántica"
         title="Catálogo semántico"
         description="Los nombres de negocio complementan el catálogo físico y sobreviven a las resincronizaciones."
-        breadcrumb={
-          <BackLink label="Volver a conexión" to={`/connections/${id}`} variant="breadcrumb" />
-        }
+        backAction={{ fallback: routes.connections.detail(id), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: "Detalle", to: routes.connections.detail(id) },
+          { label: "Catálogo semántico" },
+        ]}
       />
       <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="rounded-xl border border-slate-200 bg-white p-3">

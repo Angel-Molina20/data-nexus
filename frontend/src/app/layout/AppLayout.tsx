@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useLocation } from "react-router";
+import { NavigationType, useLocation, useNavigationType } from "react-router";
 
 import { getPageTitle } from "../navigation";
 import { TopHeader } from "../../components/layout/TopHeader";
@@ -16,11 +16,27 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigationType = useNavigationType();
   const pageTitle = getPageTitle(location.pathname);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    document.title = `${pageTitle} | DataNexus`;
+  }, [pageTitle]);
+
+  useEffect(() => {
+    const key = location.key;
+    const position = scrollPositions.get(key);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: navigationType === NavigationType.Pop ? (position ?? 0) : 0 });
+    });
+    return () => {
+      scrollPositions.set(key, window.scrollY);
+    };
+  }, [location.key, navigationType]);
 
   return (
     <div className="flex min-h-screen min-w-0 bg-background text-foreground">
@@ -52,3 +68,5 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
     </div>
   );
 }
+
+const scrollPositions = new Map<string, number>();

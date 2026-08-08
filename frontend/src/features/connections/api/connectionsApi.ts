@@ -11,11 +11,17 @@ export const createConnection = (data: ConnectionFormData) =>
     method: "POST",
     body: JSON.stringify(data),
   });
-export function listConnections(params: { search?: string; status?: string; page?: number }) {
+export function listConnections(params: {
+  search?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}) {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
   if (params.status) query.set("status", params.status);
   query.set("page", String(params.page ?? 1));
+  query.set("page_size", String(params.pageSize ?? 20));
   return apiRequest<ConnectionList>(`/connections?${query}`);
 }
 export const getConnection = (id: string) =>

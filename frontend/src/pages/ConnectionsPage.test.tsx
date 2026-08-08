@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,13 +14,13 @@ vi.mock("../features/connections/api/connectionsApi", () => ({
 
 const mockedList = vi.mocked(listConnections);
 
-function renderPage() {
+function renderPage(initialEntry = "/connections") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <ConnectionsPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -75,5 +75,22 @@ describe("ConnectionsPage", () => {
     mockedList.mockRejectedValue(new Error("network"));
     renderPage();
     expect(await screen.findByText("No fue posible cargar las conexiones.")).toBeInTheDocument();
+  });
+
+  it("restores search, status and pagination from the URL", async () => {
+    mockedList.mockResolvedValue({ items: [], total: 75, page: 3, page_size: 20 });
+    renderPage("/connections?search=ventas&status=connected&page=3&page_size=20");
+
+    expect(screen.getByPlaceholderText("Buscar por nombre")).toHaveValue("ventas");
+    expect(screen.getByLabelText("Filtrar conexiones por estado")).toHaveValue("connected");
+    await waitFor(() => {
+      expect(mockedList).toHaveBeenCalledWith({
+        page: 3,
+        pageSize: 20,
+        search: "ventas",
+        status: "connected",
+      });
+    });
+    expect(await screen.findByText("Página 3 de 4")).toBeInTheDocument();
   });
 });

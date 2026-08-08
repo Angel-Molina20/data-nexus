@@ -5,7 +5,6 @@ import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { PageContainer } from "../components/layout/PageContainer";
 import { PageHeader } from "../components/layout/PageHeader";
 import { PageSection } from "../components/layout/PageSection";
-import { BackLink } from "../components/navigation/BackLink";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { DropdownMenu } from "../components/ui/DropdownMenu";
 import {
@@ -15,6 +14,9 @@ import {
 } from "../features/connections/api/connectionsApi";
 import { useAuth } from "../features/auth/context";
 import { listConnectionAccess } from "../features/auth/api/authApi";
+import { routes } from "../app/router/routes";
+import { returnState } from "../shared/navigation/navigationState";
+import { useReturnNavigation } from "../shared/hooks/useReturnNavigation";
 
 export function ConnectionDetailPage() {
   const { id = "" } = useParams();
@@ -22,6 +24,7 @@ export function ConnectionDetailPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const auth = useAuth();
+  const { returnTo } = useReturnNavigation(routes.connections.list());
   const query = useQuery({
     queryKey: ["connection", id],
     queryFn: () => getConnection(id),
@@ -37,7 +40,7 @@ export function ConnectionDetailPage() {
     mutationFn: () => deleteConnection(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["connections"] });
-      void navigate("/connections");
+      void navigate(returnTo);
     },
   });
   const access = useQuery({
@@ -64,16 +67,33 @@ export function ConnectionDetailPage() {
       <PageHeader
         title={connection.name}
         description={`${connection.host}:${String(connection.port)} · ${connection.database_name}`}
-        breadcrumb={<BackLink label="Volver a conexiones" to="/connections" variant="breadcrumb" />}
+        backAction={{ fallback: routes.connections.list(), label: "Volver" }}
+        breadcrumbs={[
+          { label: "Inicio", to: routes.dashboard() },
+          { label: "Conexiones", to: routes.connections.list() },
+          { label: connection.name },
+        ]}
         actions={
           <>
-            <Link className="btn-primary" to={`/connections/${id}/schema`}>
+            <Link
+              className="btn-primary"
+              state={returnState(location)}
+              to={routes.connections.schema(id)}
+            >
               <TableProperties className="size-4" /> Explorar esquema
             </Link>
-            <Link className="btn-secondary" to={`/connections/${id}/relationships`}>
+            <Link
+              className="btn-secondary"
+              state={returnState(location)}
+              to={routes.connections.relationships(id)}
+            >
               <GitFork className="size-4" /> Relaciones
             </Link>
-            <Link className="btn-secondary" to={`/connections/${id}/semantic-catalog`}>
+            <Link
+              className="btn-secondary"
+              state={returnState(location)}
+              to={routes.connections.semanticCatalog(id)}
+            >
               <BookOpenText className="size-4" /> Semántica
             </Link>
             <DropdownMenu
@@ -93,7 +113,7 @@ export function ConnectionDetailPage() {
                   label: "Editar conexión",
                   icon: <Pencil className="size-4" />,
                   onSelect: () => {
-                    void navigate(`/connections/${id}/edit`);
+                    void navigate(routes.connections.edit(id), { state: returnState(location) });
                   },
                 },
                 {

@@ -5,6 +5,8 @@ import { EmptyState } from "../../../components/feedback/EmptyState";
 import { StatusBadge } from "../../../components/ui/StatusBadge";
 import { formatDateTime } from "../../../shared/utils/formatters";
 import type { ConnectionSummary } from "../types";
+import type { ReturnNavigationState } from "../../../shared/navigation/navigationState";
+import { routes } from "../../../app/router/routes";
 
 const statusLabels: Record<ConnectionSummary["status"], string> = {
   connected: "Conectada",
@@ -19,6 +21,7 @@ interface ConnectionsTableProps {
   isRetesting: boolean;
   onDelete: (connectionId: string, connectionName: string) => void;
   onRetest: (connectionId: string) => void;
+  navigationState: ReturnNavigationState;
 }
 
 export function ConnectionsTable({
@@ -27,6 +30,7 @@ export function ConnectionsTable({
   isRetesting,
   onDelete,
   onRetest,
+  navigationState,
 }: ConnectionsTableProps) {
   if (connections.length === 0) {
     return (
@@ -84,7 +88,8 @@ export function ConnectionsTable({
                   <Link
                     aria-label={`Ver ${connection.name}`}
                     className="icon-button"
-                    to={`/connections/${connection.id}`}
+                    state={navigationState}
+                    to={routes.connections.detail(connection.id)}
                   >
                     <Eye className="size-4" />
                   </Link>
@@ -101,7 +106,8 @@ export function ConnectionsTable({
                   <Link
                     aria-label={`Editar ${connection.name}`}
                     className="icon-button"
-                    to={`/connections/${connection.id}/edit`}
+                    state={navigationState}
+                    to={routes.connections.edit(connection.id)}
                   >
                     <Pencil className="size-4" />
                   </Link>
