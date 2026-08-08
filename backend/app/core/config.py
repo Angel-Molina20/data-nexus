@@ -113,6 +113,20 @@ class Settings(BaseSettings):
     QUERY_EXECUTION_INCLUDE_SQL_BY_DEFAULT: bool = False
     QUERY_EXECUTION_ALLOW_TOTAL_COUNT: bool = False
     QUERY_EXECUTION_MAX_CONCURRENT_PER_USER: int = Field(default=3, ge=1, le=20)
+    REPORT_PREVIEW_MAX_ROWS: int = Field(default=100, ge=1, le=1000)
+    REPORT_EXPORT_MAX_ROWS: int = Field(default=100000, ge=1, le=1000000)
+    REPORT_EXPORT_BATCH_SIZE: int = Field(default=500, ge=1, le=5000)
+    REPORT_EXPORT_TIMEOUT_SECONDS: int = Field(default=120, ge=1, le=3600)
+    REPORT_EXPORT_MAX_FILE_SIZE_BYTES: int = Field(default=52428800, ge=1024)
+    REPORT_EXPORT_RETENTION_DAYS: int = Field(default=7, ge=1, le=365)
+    REPORT_EXPORT_MAX_CONCURRENT_PER_USER: int = Field(default=2, ge=1, le=20)
+    REPORT_EXPORT_ALLOWED_FORMATS: StringList = ["csv", "xlsx", "pdf"]
+    REPORT_EXPORT_STORAGE_BACKEND: Literal["local"] = "local"
+    REPORT_EXPORT_STORAGE_PATH: str = "/app/storage/report-exports"
+    REPORT_CSV_DELIMITER: str = ","
+    REPORT_CSV_INCLUDE_BOM: bool = True
+    REPORT_CSV_NULL_VALUE: str = ""
+    REPORT_CSV_PROTECT_FORMULAS: bool = True
 
     @model_validator(mode="after")
     def secure_production_session(self) -> "Settings":

@@ -388,3 +388,96 @@ make build
 
 `make clean` elimina volúmenes y datos locales; usarlo únicamente en un entorno
 desechable y de forma deliberada.
+
+## 10. Fase 10 — reportes, exportaciones y cierre del roadmap inicial
+
+Estado: **completada el 7 de agosto de 2026**. El roadmap inicial 0–10 queda
+cerrado sin incorporar SQL libre ni operaciones de escritura.
+
+### Resultado
+
+- Reportes reutilizables asociados a una consulta guardada, revisión concreta e
+  instantánea inmutable de su AST.
+- Estados borrador, publicado y archivado; CRUD, filtros, publicación,
+  archivado, vista previa y ejecución.
+- Configuración visual v1: encabezado, pie, orientación, página, locale, zona
+  horaria, visibilidad, orden, etiqueta, ancho, alineación y formato de columnas.
+- Exportadores reales desacoplados para CSV UTF-8, XLSX Open XML y PDF.
+- Historial de exportaciones sin filas, parámetros, credenciales ni SQL
+  interpolado.
+- Descarga autenticada con revalidación de propiedad, ACL de conexión y campos
+  sensibles; expiración, eliminación idempotente y limpieza administrativa.
+- Almacenamiento local mediante claves UUID, prevención de path traversal,
+  archivos `0600` y volumen Docker persistente preparado por un contenedor init
+  no permanente.
+- Pantallas de listado, creación/edición, vista previa, publicación, exportación
+  e historial, con alternativa de teclado para reordenar columnas.
+
+### Endpoints añadidos
+
+```text
+POST/GET              /api/v1/reports
+GET/PATCH/DELETE      /api/v1/reports/{report_id}
+POST                  /api/v1/reports/{report_id}/publish
+POST                  /api/v1/reports/{report_id}/archive
+POST                  /api/v1/reports/{report_id}/preview
+POST                  /api/v1/reports/{report_id}/execute
+POST                  /api/v1/reports/{report_id}/exports
+GET                   /api/v1/report-exports
+GET/DELETE            /api/v1/report-exports/{export_id}
+GET                   /api/v1/report-exports/{export_id}/download
+POST                  /api/v1/report-exports/cleanup/expired
+```
+
+### Persistencia y dependencias
+
+La migración `20260807_0011_reports.py` crea `reports` y `report_exports` con
+FK, restricciones e índices por propietario, consulta, conexión, estado y
+fechas. Los archivos permanecen en storage y no como BLOB. Se añadieron
+`openpyxl` para XLSX y `reportlab` para PDF; ambos generan archivos reales sin
+macros, HTML de usuario, JavaScript ni recursos remotos.
+
+### Variables añadidas
+
+`REPORT_PREVIEW_MAX_ROWS`, `REPORT_EXPORT_MAX_ROWS`,
+`REPORT_EXPORT_BATCH_SIZE`, `REPORT_EXPORT_TIMEOUT_SECONDS`,
+`REPORT_EXPORT_MAX_FILE_SIZE_BYTES`, `REPORT_EXPORT_RETENTION_DAYS`,
+`REPORT_EXPORT_MAX_CONCURRENT_PER_USER`, `REPORT_EXPORT_ALLOWED_FORMATS`,
+`REPORT_EXPORT_STORAGE_BACKEND`, `REPORT_EXPORT_STORAGE_PATH`,
+`REPORT_CSV_DELIMITER`, `REPORT_CSV_INCLUDE_BOM`, `REPORT_CSV_NULL_VALUE` y
+`REPORT_CSV_PROTECT_FORMULAS`. Los valores y límites están documentados en
+`docs/reports.md` y `.env.example`.
+
+### Archivos principales
+
+- Backend: `app/domain/reports/`, `app/application/reports.py`,
+  `app/infrastructure/exporters/`, `app/infrastructure/storage/`,
+  `app/infrastructure/repositories/reports.py`, `app/api/routers/reports.py` y
+  `app/api/schemas/reports.py`.
+- Frontend: `src/features/reports/`, `src/services/reports.ts`,
+  `src/pages/ReportsPage.tsx`, `ReportEditorPage.tsx` y `ReportDetailPage.tsx`.
+- Pruebas: `tests/test_report_exporters.py`, `test_report_storage.py`, pruebas de
+  componentes/páginas y `e2e/reports.spec.ts`.
+- Operación: migración 0011, volumen `report_exports`, servicio
+  `report-storage-init`, comando `python -m app.cli cleanup-report-exports`.
+
+### Decisiones y límites conocidos
+
+El modelo previo no conserva una tabla histórica de revisiones de consultas;
+por ello el reporte guarda además la instantánea validada del AST. Actualizar la
+revisión es una acción explícita. La exportación inicial es síncrona y obtiene
+páginas acotadas; el máximo efectivo también respeta
+`QUERY_EXECUTION_MAX_ROWS`. La interfaz y los estados admiten evolucionar a un
+worker con streaming/distribución. No se implementaron programaciones, correo,
+S3/MinIO, dashboards, gráficos ni diseñador libre.
+
+### Documentación y operación final
+
+- Arquitectura y API: `docs/reports.md`.
+- Validación integral manual: `docs/MANUAL_TESTING.md`.
+- Instalación y recorrido de usuario: `README.md`.
+- Limpieza: `docker compose exec -T backend python -m app.cli cleanup-report-exports`.
+
+El backend continúa siendo la única capa que valida AST, resuelve parámetros y
+compila SQL parametrizado de solo lectura. Los reportes no almacenan resultados
+completos y las funcionalidades de las Fases 0–9 conservan sus contratos.

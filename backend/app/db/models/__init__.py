@@ -11,6 +11,7 @@ from app.db.models.auth import (
 from app.db.models.database_connection import DatabaseConnection
 from app.db.models.execution import QueryExecution
 from app.db.models.query import QueryCompilation, SavedQuery
+from app.db.models.report import Report, ReportExport
 from app.db.models.schema import (
     SchemaChange,
     SchemaEntity,
@@ -41,6 +42,8 @@ __all__ = [
     "UserSession",
     "DatabaseConnection",
     "QueryExecution",
+    "Report",
+    "ReportExport",
     "SavedQuery",
     "QueryCompilation",
     "SchemaChange",

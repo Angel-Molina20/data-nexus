@@ -1,8 +1,8 @@
 # DataNexus
 
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
-repositorio contiene actualmente la **Fase 9**, con constructor visual,
-compilación parametrizada y ejecución segura de consultas de solo lectura.
+roadmap inicial está completo hasta la **Fase 10**, con constructor visual,
+ejecución segura y reportes reutilizables exportables a CSV, XLSX y PDF.
 
 ## Alcance actual
 
@@ -22,8 +22,28 @@ compilación parametrizada y ejecución segura de consultas de solo lectura.
 - Sesiones opacas, cookies HttpOnly, CSRF, Argon2id, RBAC y acceso por conexión.
 - Alembic y herramientas de pruebas, linting y comprobación de tipos.
 
-No incluye OAuth, LDAP, SAML, MFA, editor SQL libre, reportes avanzados ni
-exportaciones definitivas.
+No incluye OAuth, LDAP, SAML, MFA, editor SQL libre, programaciones, envíos
+automáticos ni dashboards avanzados.
+
+## Reportes y exportaciones
+
+Desde `/reports` se crea un reporte a partir de una consulta guardada. El reporte
+fija su revisión y una instantánea del AST, permite configurar presentación y
+columnas, ofrece vista previa real y exporta CSV, XLSX o PDF. Cada ejecución
+reutiliza el servicio seguro de consultas; el navegador nunca envía SQL.
+
+Los archivos se guardan fuera de PostgreSQL en el volumen `report_exports`, con
+nombre interno aleatorio, permisos restrictivos, historial y expiración. La
+descarga revalida permisos actuales. Consulta
+[`docs/reports.md`](docs/reports.md) para arquitectura, endpoints, contratos y
+variables, y [`docs/MANUAL_TESTING.md`](docs/MANUAL_TESTING.md) para el recorrido
+manual completo.
+
+Limpieza manual o desde cron:
+
+```bash
+docker compose exec -T backend python -m app.cli cleanup-report-exports
+```
 
 ## Ejecución de consultas
 
@@ -169,6 +189,7 @@ make frontend-lint
 make frontend-typecheck
 make frontend-test
 make frontend-build
+docker compose exec -T frontend pnpm test:e2e
 ```
 
 ## Conexiones MySQL

@@ -18,6 +18,8 @@ from app.api.routers.health import router as health_router
 from app.api.routers.queries import model_router as query_model_router
 from app.api.routers.queries import queries_router
 from app.api.routers.relationships import router as relationships_router
+from app.api.routers.reports import exports_router as report_exports_router
+from app.api.routers.reports import router as reports_router
 from app.api.routers.roles import router as roles_router
 from app.api.routers.schema import router as schema_router
 from app.api.routers.semantic import router as semantic_router
@@ -75,5 +77,7 @@ app.include_router(queries_router, prefix=settings.API_V1_PREFIX)
 app.include_router(compiler_router, prefix=settings.API_V1_PREFIX)
 app.include_router(query_compilations_router, prefix=settings.API_V1_PREFIX)
 app.include_router(executions_router, prefix=settings.API_V1_PREFIX)
+app.include_router(reports_router, prefix=settings.API_V1_PREFIX)
+app.include_router(report_exports_router, prefix=settings.API_V1_PREFIX)
 app.add_exception_handler(PublicError, public_error_handler)  # type: ignore[arg-type]
 app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]

@@ -41,6 +41,15 @@ PERMISSIONS: Final[dict[str, tuple[str, str]]] = {
     "queries.use_sensitive_fields": ("Usar campos sensibles", "queries"),
     "queries.compile": ("Compilar consultas", "queries"),
     "queries.execute": ("Ejecutar consultas", "queries"),
+    "reports.read": ("Ver reportes", "reports"),
+    "reports.create": ("Crear reportes", "reports"),
+    "reports.update": ("Editar reportes", "reports"),
+    "reports.delete": ("Eliminar reportes", "reports"),
+    "reports.publish": ("Publicar reportes", "reports"),
+    "reports.archive": ("Archivar reportes", "reports"),
+    "reports.execute": ("Ejecutar reportes", "reports"),
+    "reports.export": ("Exportar reportes", "reports"),
+    "reports.download": ("Descargar reportes", "reports"),
 }
 
 SYSTEM_ROLES: Final[dict[str, set[str]]] = {
@@ -59,12 +68,21 @@ SYSTEM_ROLES: Final[dict[str, set[str]]] = {
         "queries.validate",
         "queries.compile",
         "queries.execute",
+        "reports.read",
+        "reports.create",
+        "reports.update",
+        "reports.publish",
+        "reports.archive",
+        "reports.execute",
+        "reports.export",
+        "reports.download",
     },
     "viewer": {
         "connections.read",
         "schemas.read",
         "relationships.read",
         "semantic_catalog.read",
+        "reports.read",
     },
 }
 
