@@ -1,5 +1,14 @@
 node_modules
 dist
+coverage
 test-results
 playwright-report
+.pnpm-store
+.vite
+*.tsbuildinfo
+*.log
 .git
+.env
+.env.*
+.vscode
+.idea

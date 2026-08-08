@@ -3,6 +3,8 @@
 DataNexus es una plataforma visual de consultas y reportes multifuente. El
 roadmap inicial está completo hasta la **Fase 10**, con constructor visual,
 ejecución segura y reportes reutilizables exportables a CSV, XLSX y PDF.
+La Fase 11 inicia el segundo roadmap con un frontend reproducible y portable en
+Docker; consulta [`docs/FRONTEND_DOCKER_PORTABILITY.md`](docs/FRONTEND_DOCKER_PORTABILITY.md).
 
 ## Alcance actual
 
@@ -114,20 +116,14 @@ Tras un reverse proxy deben conservarse HTTPS, cookies Secure, Origin correcto
 y cabeceras de cliente confiables. La recuperación por correo, OAuth, LDAP,
 Microsoft Entra ID, SAML y MFA quedan expresamente pendientes.
 
-En algunos hosts Linux, el volumen enlazado de `frontend` puede conservar
-archivos generados con el UID del contenedor. Los comandos de calidad funcionan;
-cuando una herramienta deba reescribirlos, debe ejecutarse con el UID/GID del
-host. No se cambió la estrategia de volúmenes en esta fase para no mezclar esa
-incidencia de infraestructura con autenticación.
-
 ## Requisitos
 
 - Docker Engine.
 - Docker Compose v2 (`docker compose`).
 - En hosts ARM, soporte de emulación `linux/amd64` para MySQL 5.6.
 
-No es necesario instalar Python, Node.js ni las herramientas de calidad en el
-host.
+No es necesario instalar Python, Node.js, npm, pnpm, Vite ni las herramientas
+de calidad en el host.
 
 ## Inicio rápido
 
@@ -136,6 +132,8 @@ host.
    ```bash
    cp .env.example .env
    ```
+
+   En PowerShell usa `Copy-Item .env.example .env`.
 
 2. Revisa los valores ficticios de desarrollo y cámbialos si el entorno lo
    requiere.
@@ -147,19 +145,25 @@ host.
 
    No reutilices claves de desarrollo en producción. Perder la clave impide
    recuperar las credenciales cifradas.
-3. Construye e inicia los servicios:
+3. Construye e inicia los servicios directamente con Docker Compose:
 
    ```bash
-   make up
+   docker compose up --build
    ```
 
 4. Comprueba su estado:
 
    ```bash
-   make ps
+   docker compose ps
    curl http://localhost:8000/api/v1/health
    curl http://localhost:8000/api/v1/health/ready
    ```
+
+`Makefile` permanece como conveniencia, pero no es obligatorio. En el primer
+arranque el contenedor inicializa su volumen privado de `node_modules`; nunca se
+debe ejecutar `npm install` ni `pnpm install` en el host.
+Para añadir o quitar paquetes usa `frontend/manage-dependencies.sh` mediante
+`docker compose exec`, como documenta la guía de portabilidad.
 
 ## URLs y puertos
 

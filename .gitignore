@@ -19,6 +19,7 @@ htmlcov/
 node_modules/
 frontend/.pnpm-store/
 dist/
+coverage/
 .vite/
 *.tsbuildinfo
 frontend/test-results/
