@@ -18,11 +18,17 @@ from app.db.models.schema import (
 from app.domain.schema.models import (
     ChangeType,
     InspectedEntity,
-    InspectedField,
-    InspectedIndex,
-    InspectedRelationship,
     InspectedSchema,
     ObjectType,
+)
+from app.infrastructure.repositories.schema_snapshots import (
+    assign_entity,
+    entity_model_snapshot,
+    entity_snapshot,
+    field_model_snapshot,
+    field_snapshot,
+    index_snapshot,
+    relationship_snapshot,
 )
 
 
@@ -444,7 +450,7 @@ class SchemaRepository:
         for source in inspected.entities:
             key = (source.schema_name, source.physical_name)
             model = entity_by_key.get(key)
-            current = _entity_snapshot(source)
+            current = entity_snapshot(source)
             if model is None:
                 model = SchemaEntity(
                     connection_id=connection_id,
@@ -474,7 +480,7 @@ class SchemaRepository:
                     current,
                 )
             else:
-                previous = _entity_model_snapshot(model)
+                previous = entity_model_snapshot(model)
                 change = (
                     ChangeType.REACTIVATED
                     if not model.is_active
@@ -493,7 +499,7 @@ class SchemaRepository:
                         previous,
                         current,
                     )
-                _assign_entity(model, source)
+                assign_entity(model, source)
                 model.is_active = True
                 model.last_seen_at = now
             seen_entities.add(model.id)
@@ -508,7 +514,7 @@ class SchemaRepository:
                     ObjectType.ENTITY,
                     model.id,
                     model.physical_name,
-                    _entity_model_snapshot(model),
+                    entity_model_snapshot(model),
                     None,
                 )
                 removed_fields = list(
@@ -530,7 +536,7 @@ class SchemaRepository:
                         ObjectType.FIELD,
                         field.id,
                         f"{model.physical_name}.{field.physical_name}",
-                        _field_model_snapshot(field),
+                        field_model_snapshot(field),
                         None,
                     )
                 removed_indexes = list(
@@ -569,7 +575,7 @@ class SchemaRepository:
             seen: set[uuid.UUID] = set()
             for source_field in source_entity.fields:
                 field_model = by_name.get(source_field.physical_name)
-                current = _field_snapshot(source_field)
+                current = field_snapshot(source_field)
                 if field_model is None:
                     field_model = SchemaField(
                         entity_id=entity_id,
@@ -593,7 +599,7 @@ class SchemaRepository:
                         current,
                     )
                 else:
-                    previous = _field_model_snapshot(field_model)
+                    previous = field_model_snapshot(field_model)
                     field_change: ChangeType | None = (
                         ChangeType.REACTIVATED
                         if not field_model.is_active
@@ -627,7 +633,7 @@ class SchemaRepository:
                         ObjectType.FIELD,
                         existing_field.id,
                         f"{source_entity.physical_name}.{existing_field.physical_name}",
-                        _field_model_snapshot(existing_field),
+                        field_model_snapshot(existing_field),
                         None,
                     )
             await self.session.flush()
@@ -665,7 +671,7 @@ class SchemaRepository:
             seen: set[uuid.UUID] = set()
             for source in source_entity.indexes:
                 model = by_name.get(source.physical_name)
-                current = _index_snapshot(source)
+                current = index_snapshot(source)
                 change: ChangeType | None
                 if model is None:
                     model = SchemaIndex(
@@ -772,7 +778,7 @@ class SchemaRepository:
             target_entity = entity_by_name[source.target_entity]
             key = (source.constraint_name, source_entity.id, target_entity.id)
             model = by_key.get(key)
-            current = _relationship_snapshot(source)
+            current = relationship_snapshot(source)
             change: ChangeType | None
             if model is None:
                 model = SchemaPhysicalRelationship(
@@ -924,99 +930,3 @@ class SchemaRepository:
                 for item in items
             ],
         }
-
-
-def _entity_snapshot(source: InspectedEntity) -> dict[str, Any]:
-    return {
-        "entity_type": source.entity_type,
-        "comment": source.comment,
-        "storage_engine": source.storage_engine,
-        "collation": source.collation,
-    }
-
-
-def _entity_model_snapshot(model: SchemaEntity) -> dict[str, Any]:
-    return {
-        "entity_type": model.entity_type,
-        "comment": model.comment,
-        "storage_engine": model.storage_engine,
-        "collation": model.collation,
-    }
-
-
-def _assign_entity(model: SchemaEntity, source: InspectedEntity) -> None:
-    model.entity_type = source.entity_type
-    model.comment = source.comment
-    model.estimated_rows = source.estimated_rows
-    model.storage_engine = source.storage_engine
-    model.collation = source.collation
-
-
-def _field_snapshot(source: InspectedField) -> dict[str, Any]:
-    return {
-        name: getattr(source, name)
-        for name in (
-            "ordinal_position",
-            "native_data_type",
-            "normalized_data_type",
-            "column_type",
-            "is_nullable",
-            "default_value",
-            "is_primary_key",
-            "is_unique",
-            "is_auto_increment",
-            "character_maximum_length",
-            "numeric_precision",
-            "numeric_scale",
-            "datetime_precision",
-            "character_set",
-            "collation",
-            "comment",
-            "extra",
-        )
-    }
-
-
-def _field_model_snapshot(model: SchemaField) -> dict[str, Any]:
-    return {
-        name: getattr(model, name)
-        for name in (
-            "ordinal_position",
-            "native_data_type",
-            "normalized_data_type",
-            "column_type",
-            "is_nullable",
-            "default_value",
-            "is_primary_key",
-            "is_unique",
-            "is_auto_increment",
-            "character_maximum_length",
-            "numeric_precision",
-            "numeric_scale",
-            "datetime_precision",
-            "character_set",
-            "collation",
-            "comment",
-            "extra",
-        )
-    }
-
-
-def _index_snapshot(source: InspectedIndex) -> dict[str, Any]:
-    return {
-        "index_type": source.index_type,
-        "is_unique": source.is_unique,
-        "is_primary": source.is_primary,
-        "fields": [
-            [item.physical_name, item.sequence, item.sort_direction, item.prefix_length]
-            for item in source.fields
-        ],
-    }
-
-
-def _relationship_snapshot(source: InspectedRelationship) -> dict[str, Any]:
-    return {
-        "update_rule": source.update_rule,
-        "delete_rule": source.delete_rule,
-        "fields": [[item.source_field, item.target_field, item.sequence] for item in source.fields],
-    }

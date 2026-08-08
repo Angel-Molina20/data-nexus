@@ -79,5 +79,5 @@ app.include_router(query_compilations_router, prefix=settings.API_V1_PREFIX)
 app.include_router(executions_router, prefix=settings.API_V1_PREFIX)
 app.include_router(reports_router, prefix=settings.API_V1_PREFIX)
 app.include_router(report_exports_router, prefix=settings.API_V1_PREFIX)
-app.add_exception_handler(PublicError, public_error_handler)  # type: ignore[arg-type]
-app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]
+app.add_exception_handler(PublicError, public_error_handler)
+app.add_exception_handler(RequestValidationError, validation_error_handler)

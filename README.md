@@ -13,6 +13,9 @@ componentes, accesibilidad y convenciones se documentan en
 La organización feature-first, reglas de imports, APIs, hooks y formato del
 frontend se documentan en
 [`docs/FRONTEND_ARCHITECTURE.md`](docs/FRONTEND_ARCHITECTURE.md).
+La arquitectura, límites de capas y estilo del backend se documentan en
+[`docs/BACKEND_ARCHITECTURE.md`](docs/BACKEND_ARCHITECTURE.md) y
+[`docs/BACKEND_CODE_STYLE.md`](docs/BACKEND_CODE_STYLE.md).
 
 ## Alcance actual
 

@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Annotated, cast
 from urllib.parse import urlsplit
 
@@ -7,8 +7,17 @@ from fastapi import Cookie, Depends, Header, Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.context_factories import (
+    build_compiler_context,
+    build_connection_context,
+    build_execution_context,
+    build_query_context,
+    build_relationship_context,
+    build_report_context,
+    build_schema_context,
+)
 from app.application.auth import AuthContext, AuthorizationService, SessionPrincipal, SessionService
-from app.application.compilations import CompilerContext, create_compiler_registry
+from app.application.compilations import CompilerContext
 from app.application.connections import ConnectionContext
 from app.application.executions import ExecutionContext
 from app.application.queries import QueryContext
@@ -17,25 +26,11 @@ from app.application.reports import ReportContext
 from app.application.schema import SchemaContext
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
-from app.domain.connections.models import ConnectionParameters, Engine
-from app.infrastructure.adapters.active_executions import active_execution_registry
-from app.infrastructure.adapters.mysql import MySQLAdapter
-from app.infrastructure.adapters.registry import AdapterRegistry
-from app.infrastructure.exporters.registry import ReportExporterRegistry
-from app.infrastructure.network.policy import DatabaseHostPolicy
+from app.domain.connections.errors import PublicError
 from app.infrastructure.repositories.audit import AuditRepository
 from app.infrastructure.repositories.auth import AuthRepository
-from app.infrastructure.repositories.compilations import CompilationRepository
-from app.infrastructure.repositories.connections import DatabaseConnectionRepository
-from app.infrastructure.repositories.executions import QueryExecutionRepository
-from app.infrastructure.repositories.queries import SavedQueryRepository
-from app.infrastructure.repositories.reports import ReportExportRepository, ReportRepository
-from app.infrastructure.repositories.schema import SchemaRepository
-from app.infrastructure.repositories.semantic import SemanticCatalogRepository
-from app.infrastructure.security.encryption import get_credential_encryption
 from app.infrastructure.security.passwords import password_service
 from app.infrastructure.security.rate_limit import RateLimiter
-from app.infrastructure.storage.local import LocalFileStorage
 
 
 def get_redis_client() -> Redis:
@@ -73,8 +68,6 @@ async def get_current_principal(
     session_token: Annotated[str | None, Cookie(alias=get_settings().SESSION_COOKIE_NAME)] = None,
 ) -> SessionPrincipal:
     if not session_token:
-        from app.domain.connections.errors import PublicError
-
         raise PublicError("AUTHENTICATION_REQUIRED", "Debes iniciar sesión.", 401)
     return await SessionService(context).resolve(session_token)
 
@@ -82,7 +75,9 @@ async def get_current_principal(
 CurrentPrincipal = Annotated[SessionPrincipal, Depends(get_current_principal)]
 
 
-def require_permission(code: str):  # type: ignore[no-untyped-def]
+def require_permission(
+    code: str,
+) -> Callable[[CurrentPrincipal], Awaitable[SessionPrincipal]]:
     async def dependency(principal: CurrentPrincipal) -> SessionPrincipal:
         AuthorizationService.require_permission(principal, code)
         return principal
@@ -104,8 +99,6 @@ async def require_csrf(
         parsed = urlsplit(referer)
         origin = f"{parsed.scheme}://{parsed.netloc}"
     if origin is None or origin not in context.settings.ALLOWED_ORIGINS:
-        from app.domain.connections.errors import PublicError
-
         raise PublicError("ORIGIN_NOT_ALLOWED", "El origen de la solicitud no está permitido.", 403)
     await SessionService(context).validate_csrf(principal, csrf_token)
 
@@ -150,30 +143,7 @@ async def require_connection_manager(
 def get_connection_context(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ConnectionContext:
-    settings = get_settings()
-    registry = AdapterRegistry()
-
-    def mysql_factory(parameters: ConnectionParameters) -> MySQLAdapter:
-        return MySQLAdapter(
-            parameters,
-            connect_timeout=settings.MYSQL_CONNECT_TIMEOUT,
-            read_timeout=settings.MYSQL_READ_TIMEOUT,
-            write_timeout=settings.MYSQL_WRITE_TIMEOUT,
-        )
-
-    registry.register(Engine.MYSQL, mysql_factory)
-    return ConnectionContext(
-        session=session,
-        connections=DatabaseConnectionRepository(session),
-        audit=AuditRepository(session),
-        adapters=registry,
-        encryption=get_credential_encryption(),
-        host_policy=DatabaseHostPolicy(
-            allow_private=settings.ALLOW_PRIVATE_DATABASE_HOSTS,
-            allowed_hosts=settings.ALLOWED_DATABASE_HOSTS,
-            blocked_hosts=settings.BLOCKED_DATABASE_HOSTS,
-        ),
-    )
+    return build_connection_context(session, get_settings())
 
 
 ConnectionContextDependency = Annotated[ConnectionContext, Depends(get_connection_context)]
@@ -182,17 +152,7 @@ ConnectionContextDependency = Annotated[ConnectionContext, Depends(get_connectio
 def get_schema_context(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> SchemaContext:
-    base = get_connection_context(session)
-    return SchemaContext(
-        session=session,
-        connections=base.connections,
-        schemas=SchemaRepository(session),
-        audit=base.audit,
-        adapters=base.adapters,
-        encryption=base.encryption,
-        host_policy=base.host_policy,
-        settings=get_settings(),
-    )
+    return build_schema_context(session, get_settings())
 
 
 SchemaContextDependency = Annotated[SchemaContext, Depends(get_schema_context)]
@@ -202,13 +162,7 @@ def get_relationship_context(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> RelationshipContext:
-    return RelationshipContext(
-        session=session,
-        connections=DatabaseConnectionRepository(session),
-        catalog=SemanticCatalogRepository(session),
-        audit=AuditRepository(session),
-        settings=settings,
-    )
+    return build_relationship_context(session, settings)
 
 
 RelationshipContextDependency = Annotated[RelationshipContext, Depends(get_relationship_context)]
@@ -218,12 +172,7 @@ def get_query_context(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> QueryContext:
-    return QueryContext(
-        session=session,
-        repository=SavedQueryRepository(session),
-        audit=AuditRepository(session),
-        settings=settings,
-    )
+    return build_query_context(session, settings)
 
 
 QueryContextDependency = Annotated[QueryContext, Depends(get_query_context)]
@@ -233,20 +182,7 @@ def get_compiler_context(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> CompilerContext:
-    query_context = QueryContext(
-        session=session,
-        repository=SavedQueryRepository(session),
-        audit=AuditRepository(session),
-        settings=settings,
-    )
-    return CompilerContext(
-        session=session,
-        compilations=CompilationRepository(session),
-        queries=query_context,
-        audit=query_context.audit,
-        settings=settings,
-        registry=create_compiler_registry(),
-    )
+    return build_compiler_context(session, settings)
 
 
 CompilerContextDependency = Annotated[CompilerContext, Depends(get_compiler_context)]
@@ -256,17 +192,7 @@ def get_execution_context(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ExecutionContext:
-    connections = get_connection_context(session)
-    compiler = get_compiler_context(session, settings)
-    return ExecutionContext(
-        session=session,
-        executions=QueryExecutionRepository(session),
-        compiler=compiler,
-        adapters=connections.adapters,
-        encryption=connections.encryption,
-        active=active_execution_registry,
-        settings=settings,
-    )
+    return build_execution_context(session, settings)
 
 
 ExecutionContextDependency = Annotated[ExecutionContext, Depends(get_execution_context)]
@@ -276,17 +202,7 @@ def get_report_context(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ReportContext:
-    return ReportContext(
-        session=session,
-        reports=ReportRepository(session),
-        exports=ReportExportRepository(session),
-        execution=get_execution_context(session, settings),
-        audit=AuditRepository(session),
-        auth=AuthRepository(session),
-        exporters=ReportExporterRegistry(settings),
-        storage=LocalFileStorage(settings.REPORT_EXPORT_STORAGE_PATH),
-        settings=settings,
-    )
+    return build_report_context(session, settings)
 
 
 ReportContextDependency = Annotated[ReportContext, Depends(get_report_context)]

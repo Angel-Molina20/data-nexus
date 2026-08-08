@@ -19,6 +19,7 @@ from app.domain.query_compiler.models import (
     CompilationConnection,
     CompilationContext,
     CompilationOptions,
+    CompilationResult,
     PolymorphicMappingSnapshot,
     PolymorphicRelationshipSnapshot,
     RelationshipPair,
@@ -94,7 +95,7 @@ def catalog() -> CatalogSnapshot:
     )
 
 
-def compile_document(document: dict[str, object], *, major: int = 8):  # type: ignore[no-untyped-def]
+def compile_document(document: dict[str, object], *, major: int = 8) -> CompilationResult:
     query = UniversalQuery.model_validate(document)
     context = CompilationContext(
         query=query,

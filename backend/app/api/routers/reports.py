@@ -1,6 +1,5 @@
 import uuid
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import StreamingResponse
@@ -23,18 +22,14 @@ from app.api.schemas.reports import (
     ReportRunRequest,
     ReportUpdateRequest,
 )
-from app.application.auth import AuthorizationService
-from app.application.queries import ValidateUniversalQueryService
+from app.application.report_execution import ReportExecutionService
+from app.application.report_exports import ReportExportAccessService
 from app.application.reports import (
     ExpiredReportExportCleanupService,
-    ReportExecutionService,
     ReportService,
     export_response,
-    report_response,
 )
-from app.db.models.query import SavedQuery
 from app.domain.connections.errors import PublicError
-from app.domain.query_model.ast import UniversalQuery
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 exports_router = APIRouter(prefix="/report-exports", tags=["report-exports"])
@@ -68,7 +63,7 @@ async def list_reports(
     search: str | None = None,
     include_archived: bool = False,
 ) -> ReportListResponse:
-    items, total = await context.reports.list(
+    return await ReportService(context).list(
         principal.user.id,
         page=page,
         page_size=page_size,
@@ -78,15 +73,6 @@ async def list_reports(
         search=search,
         include_archived=include_archived,
     )
-    responses = []
-    for item in items:
-        current_query = await context.session.get(SavedQuery, item.query_id)
-        responses.append(
-            report_response(
-                item, current_revision=current_query.revision if current_query else None
-            )
-        )
-    return ReportListResponse(items=responses, total=total, page=page, page_size=page_size)
 
 
 @router.get(
@@ -97,11 +83,7 @@ async def list_reports(
 async def get_report(
     report_id: uuid.UUID, context: ReportContextDependency, principal: CurrentPrincipal
 ) -> ReportResponse:
-    model = await ReportService(context).get(report_id, principal.user.id)
-    current_query = await context.session.get(SavedQuery, model.query_id)
-    return report_response(
-        model, current_revision=current_query.revision if current_query else None
-    )
+    return await ReportService(context).get_response(report_id, principal.user.id)
 
 
 @router.patch(
@@ -216,7 +198,7 @@ async def list_exports(
     format: str | None = None,
     status: str | None = None,
 ) -> ReportExportListResponse:
-    items, total = await context.exports.list(
+    items, total = await ReportExportAccessService(context).list(
         principal.user.id,
         page=page,
         page_size=page_size,
@@ -224,9 +206,7 @@ async def list_exports(
         format=format,
         status=status,
     )
-    return ReportExportListResponse(
-        items=[export_response(item) for item in items], total=total, page=page, page_size=page_size
-    )
+    return ReportExportListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @exports_router.get(
@@ -237,20 +217,7 @@ async def list_exports(
 async def get_export(
     export_id: uuid.UUID, context: ReportContextDependency, principal: CurrentPrincipal
 ) -> ReportExportResponse:
-    model = await context.exports.get(export_id, principal.user.id)
-    if model is None:
-        raise PublicError("REPORT_EXPORT_NOT_FOUND", "La exportación no existe.", 404)
-    report = await context.reports.get(model.report_id, principal.user.id)
-    if report is None:
-        raise PublicError("REPORT_EXPORT_DOWNLOAD_DENIED", "No puedes descargar el archivo.", 403)
-    await AuthorizationService(context.auth).require_connection_access(
-        principal, report.connection_id, "viewer"
-    )
-    validation = await ValidateUniversalQueryService(context.execution.compiler.queries).execute(
-        UniversalQuery.model_validate(report.query_document_json), principal.permissions
-    )
-    if not validation.valid:
-        raise PublicError("REPORT_EXPORT_DOWNLOAD_DENIED", "No puedes descargar el archivo.", 403)
+    model = await ReportExportAccessService(context).get_authorized(export_id, principal)
     return export_response(model)
 
 
@@ -260,28 +227,12 @@ async def get_export(
 async def download_export(
     export_id: uuid.UUID, context: ReportContextDependency, principal: CurrentPrincipal
 ) -> StreamingResponse:
-    model = await context.exports.get(export_id, principal.user.id)
-    if model is None:
-        raise PublicError("REPORT_EXPORT_NOT_FOUND", "La exportación no existe.", 404)
-    report = await context.reports.get(model.report_id, principal.user.id)
-    if report is None:
-        raise PublicError("REPORT_EXPORT_DOWNLOAD_DENIED", "No puedes descargar el archivo.", 403)
-    await AuthorizationService(context.auth).require_connection_access(
-        principal, report.connection_id, "viewer"
+    model = await ReportExportAccessService(context).get_authorized(
+        export_id,
+        principal,
+        require_file=True,
     )
-    validation = await ValidateUniversalQueryService(context.execution.compiler.queries).execute(
-        UniversalQuery.model_validate(report.query_document_json), principal.permissions
-    )
-    if not validation.valid:
-        raise PublicError("REPORT_EXPORT_DOWNLOAD_DENIED", "No puedes descargar el archivo.", 403)
-    if (
-        model.status == "expired"
-        or model.expires_at is not None
-        and model.expires_at <= datetime.now(UTC)
-    ):
-        raise PublicError("REPORT_EXPORT_EXPIRED", "El archivo expiró.", 410)
-    if not model.storage_key or not context.storage.exists(model.storage_key):
-        raise PublicError("REPORT_EXPORT_FILE_NOT_FOUND", "El archivo ya no está disponible.", 404)
+    assert model.storage_key is not None
     stream = context.storage.open(model.storage_key)
 
     async def body() -> AsyncIterator[bytes]:
@@ -306,12 +257,7 @@ async def download_export(
 async def delete_export(
     export_id: uuid.UUID, context: ReportContextDependency, principal: CurrentPrincipal
 ) -> Response:
-    model = await context.exports.get(export_id, principal.user.id)
-    if model is not None:
-        if model.storage_key:
-            context.storage.delete(model.storage_key)
-        await context.session.delete(model)
-        await context.session.commit()
+    await ReportExportAccessService(context).delete(export_id, principal.user.id)
     return Response(status_code=204)
 
 

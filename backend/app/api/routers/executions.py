@@ -18,7 +18,8 @@ from app.api.schemas.executions import (
     QueryExecutionResultResponse,
 )
 from app.application.auth import AuthorizationService
-from app.application.executions import QueryExecutionService, execution_response, history_response
+from app.application.executions import QueryExecutionService
+from app.application.query_execution.responses import execution_response, history_response
 from app.domain.connections.errors import PublicError
 from app.domain.query_execution.models import ExecutionStatus
 
