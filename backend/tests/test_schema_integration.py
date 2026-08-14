@@ -69,6 +69,7 @@ async def test_schema_catalog_lifecycle(async_client: AsyncClient, prefix: str) 
     document_fields = {
         item["physical_name"]: item["id"] for item in documents_detail.json()["fields"]
     }
+    assert "description" in document_fields
     career_fields = {item["physical_name"]: item["id"] for item in careers_detail.json()["fields"]}
     polymorphic_payload = {
         "source_entity_id": documents.json()["items"][0]["id"],

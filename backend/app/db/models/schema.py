@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     DateTime,
     ForeignKey,
@@ -93,7 +94,7 @@ class SchemaField(Base):
     is_primary_key: Mapped[bool] = mapped_column(Boolean)
     is_unique: Mapped[bool] = mapped_column(Boolean)
     is_auto_increment: Mapped[bool] = mapped_column(Boolean)
-    character_maximum_length: Mapped[int | None] = mapped_column(Integer)
+    character_maximum_length: Mapped[int | None] = mapped_column(BigInteger)
     numeric_precision: Mapped[int | None] = mapped_column(Integer)
     numeric_scale: Mapped[int | None] = mapped_column(Integer)
     datetime_precision: Mapped[int | None] = mapped_column(Integer)

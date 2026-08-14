@@ -255,14 +255,19 @@ class MySQLAdapter(DataSourceAdapter):
                         "El esquema supera el límite configurado de entidades.",
                         400,
                     )
+                datetime_precision_expression = (
+                    "DATETIME_PRECISION"
+                    if _has_datetime_precision_metadata(connection)
+                    else "NULL AS DATETIME_PRECISION"
+                )
                 field_rows = (
                     connection.execute(
                         text(
-                            """
+                            f"""
                         SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT,
                                IS_NULLABLE, DATA_TYPE, COLUMN_TYPE,
                                CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE,
-                               DATETIME_PRECISION, CHARACTER_SET_NAME, COLLATION_NAME,
+                               {datetime_precision_expression}, CHARACTER_SET_NAME, COLLATION_NAME,
                                COLUMN_KEY, EXTRA, COLUMN_COMMENT
                         FROM information_schema.COLUMNS
                         WHERE TABLE_SCHEMA = :schema_name
@@ -457,6 +462,22 @@ def _optional_string(value: object) -> str | None:
 
 def _optional_int(value: object) -> int | None:
     return None if value is None else int(str(value))
+
+
+def _has_datetime_precision_metadata(connection: Any) -> bool:
+    return bool(
+        connection.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = 'information_schema'
+                  AND TABLE_NAME = 'COLUMNS'
+                  AND COLUMN_NAME = 'DATETIME_PRECISION'
+                """
+            )
+        ).scalar_one()
+    )
 
 
 def _serialize_default(value: object) -> str | int | float | bool | None:

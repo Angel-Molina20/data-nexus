@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS documents (
   class_id BIGINT UNSIGNED NOT NULL,
   file_name VARCHAR(255) NOT NULL,
   payload BLOB NULL,
+  description LONGTEXT NULL,
   PRIMARY KEY (id),
   KEY idx_documents_polymorphic_storage_only (class, class_id)
 ) ENGINE=InnoDB;
