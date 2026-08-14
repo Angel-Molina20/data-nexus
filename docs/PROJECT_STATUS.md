@@ -1,8 +1,9 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 8 de agosto de 2026. Las Fases 0–18 están completadas; la última
+Actualizado: 14 de agosto de 2026. Las Fases 0–18 están completadas; la última
 entrega corresponde a la **Fase 18**, navegación, retorno contextual y
-preservación de contexto.
+preservación de contexto, seguida por correcciones de compatibilidad en la
+sincronización MySQL.
 
 ## 1. Objetivo general
 
@@ -779,3 +780,17 @@ Estado: **completada el 8 de agosto de 2026**.
   constructor deberá conservar el contrato de origen al separar esos paneles.
 - La estrategia y convenciones completas están en
   `docs/FRONTEND_NAVIGATION.md`.
+
+## 19. Mantenimiento — compatibilidad de sincronización MySQL
+
+Estado: **completado el 14 de agosto de 2026**.
+
+- `schema_fields.character_maximum_length` usa `BIGINT` mediante la migración
+  `20260814_0012`, permitiendo persistir el máximo de `LONGTEXT`/`LONGBLOB`
+  (`4294967295`) sin desbordar PostgreSQL.
+- El adaptador comprueba si `information_schema.COLUMNS` expone
+  `DATETIME_PRECISION`; en servidores antiguos conserva el contrato de metadata
+  mediante `NULL AS DATETIME_PRECISION` en vez de abortar la sincronización.
+- La fixture incluye un campo `LONGTEXT`. Ruff, MyPy, 3 regresiones unitarias,
+  2 sincronizaciones de integración contra MySQL 5.6/MySQL 8 y la suite completa
+  de 103 pruebas backend finalizaron correctamente.
