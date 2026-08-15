@@ -283,19 +283,32 @@ export const queryActions = {
   addGroupBy(document: QueryDocument, expression: QueryExpression) {
     return this.update(document, (draft) => {
       const key = canonical(expression);
-      if (!draft.query.group_by.some((item) => canonical(item.expression) === key))
-        draft.query.group_by.push({ expression });
+      const selectIndex = draft.query.select.findIndex(
+        (item) => canonical(item.expression) === key,
+      );
+      const position = expression.node_type === "field" || selectIndex < 0 ? null : selectIndex + 1;
+      if (
+        !draft.query.group_by.some(
+          (item) => canonical(item.expression) === key || (position && item.position === position),
+        )
+      )
+        draft.query.group_by.push({ expression, position });
     });
   },
   addSelectedFieldsToGroupBy(document: QueryDocument) {
     return this.update(document, (draft) => {
       const grouped = new Set(draft.query.group_by.map((item) => canonical(item.expression)));
-      for (const item of draft.query.select) {
+      const groupedPositions = new Set(
+        draft.query.group_by.flatMap((item) => (item.position ? [item.position] : [])),
+      );
+      for (const [index, item] of draft.query.select.entries()) {
         if (!requiresGroupBy(item.expression)) continue;
         const key = canonical(item.expression);
-        if (!grouped.has(key)) {
-          draft.query.group_by.push({ expression: clone(item.expression) });
+        const position = item.expression.node_type === "field" ? null : index + 1;
+        if (!grouped.has(key) && (!position || !groupedPositions.has(position))) {
+          draft.query.group_by.push({ expression: clone(item.expression), position });
           grouped.add(key);
+          if (position) groupedPositions.add(position);
         }
       }
     });
@@ -365,6 +378,9 @@ export const localIssues = (document: QueryDocument): QueryIssue[] => {
   const sources = [document.query.source, ...document.query.joins.map((item) => item.source)];
   const aliases = new Set<string>();
   const grouped = new Set(document.query.group_by.map((item) => canonical(item.expression)));
+  const groupedPositions = new Set(
+    document.query.group_by.flatMap((item) => (item.position ? [item.position] : [])),
+  );
   const hasAggregate = document.query.select.some((item) =>
     containsAggregateExpression(item.expression),
   );
@@ -374,7 +390,8 @@ export const localIssues = (document: QueryDocument): QueryIssue[] => {
         containsAggregateExpression(item.expression) ||
         item.expression.node_type === "literal" ||
         item.expression.node_type === "parameter" ||
-        grouped.has(canonical(item.expression))
+        grouped.has(canonical(item.expression)) ||
+        groupedPositions.has(index + 1)
       )
         return;
       issues.push({

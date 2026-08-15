@@ -180,6 +180,13 @@ con un argumento. No se modela como función escalar: participa correctamente en
 la detección de agregaciones, GROUP BY y HAVING, y el SQL continúa generándose
 exclusivamente en el compilador backend.
 
+Las expresiones SELECT complejas agrupadas usan `GroupByItem.position`. El
+compilador emite el ordinal controlado (`GROUP BY 1`, `GROUP BY 2`) en lugar de
+repetir funciones, CASE o subconsultas completas. Los campos físicos simples
+continúan compilándose como `alias.campo`. Las consultas existentes que aún
+guardan la expresión compleja completa se reconocen y compilan por posición sin
+modificar su semántica.
+
 ### Drafts, grupos e historial
 
 Una condición incompleta vive únicamente como `FilterDraft`: no entra al AST,

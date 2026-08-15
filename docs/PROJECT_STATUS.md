@@ -887,6 +887,9 @@ Estado: **completada el 15 de agosto de 2026**.
 - La equivalencia de expresiones GROUP BY usa canonicalización estable y las
   filas muestran labels de SELECT; se corrigieron falsos errores causados por
   distinto orden de propiedades y la exposición de IDs internos en la UI.
+- GROUP BY usa posiciones SELECT para subconsultas y otras expresiones
+  complejas, evitando repetirlas en el SQL compilado. Campos simples conservan
+  `alias.campo`; AST legacy equivalente se reconoce automáticamente.
 - GROUP BY identifica campos como `alias.campo`; Agrupar muestra las agregaciones
   SELECT activas y permite eliminar COUNT desde el mismo contexto, retirando la
   obligación de agrupar cuando ya no queda agregación ni GROUP BY explícito.
