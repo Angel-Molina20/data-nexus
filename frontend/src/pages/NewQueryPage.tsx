@@ -32,13 +32,19 @@ export function NewQueryPage() {
     enabled: Boolean(connectionId),
   });
   const isDirty = Boolean(name || description || connectionId || entityId || template !== "empty");
+  const selectedEntity = entities.data?.items.find((item) => item.id === entityId);
   const unsaved = useUnsavedChangesGuard(isDirty);
   const create = useMutation({
     mutationFn: () =>
       createQuery({
         name,
         description: description || null,
-        document: initialDocument(connectionId, entityId, template),
+        document: initialDocument(
+          connectionId,
+          entityId,
+          selectedEntity?.physical_name ?? selectedEntity?.display_name ?? "entity",
+          template,
+        ),
       }),
     onSuccess: (item) => {
       unsaved.navigateWithoutPrompt(() => {
@@ -169,7 +175,38 @@ export function NewQueryPage() {
   );
 }
 
-function initialDocument(connectionId: string, entityId: string, template: string): QueryDocument {
+export function querySourceAlias(entityName: string): string {
+  const normalized = entityName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  if (!normalized) {
+    return "entity";
+  }
+  const prefixed = /^[A-Za-z]/.test(normalized) ? normalized : `entity_${normalized}`;
+  const reservedAliases = new Set([
+    "select",
+    "from",
+    "where",
+    "join",
+    "group",
+    "order",
+    "limit",
+    "table",
+  ]);
+  return (reservedAliases.has(prefixed.toLowerCase()) ? `entity_${prefixed}` : prefixed).slice(
+    0,
+    64,
+  );
+}
+
+function initialDocument(
+  connectionId: string,
+  entityId: string,
+  entityName: string,
+  template: string,
+): QueryDocument {
   const literal = { node_type: "literal", value_type: "integer", value: 1 };
   return {
     schema_version: "1.0",
@@ -177,7 +214,7 @@ function initialDocument(connectionId: string, entityId: string, template: strin
     query: {
       scope_id: "root",
       query_type: "select",
-      source: { source_id: "src_main", entity_id: entityId, alias: "main" },
+      source: { source_id: "src_main", entity_id: entityId, alias: querySourceAlias(entityName) },
       joins: [],
       select: [
         {
