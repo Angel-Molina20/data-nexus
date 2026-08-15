@@ -274,6 +274,7 @@ describe("query builder state", () => {
       "function",
       "subquery",
     ]);
+    expect(grouped.query.group_by.map((item) => item.position)).toEqual([1, 2]);
     expect(localIssues(grouped).some((issue) => issue.code === "QUERY_GROUPING_INVALID")).toBe(
       false,
     );

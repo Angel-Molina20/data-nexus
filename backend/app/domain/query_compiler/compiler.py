@@ -25,6 +25,7 @@ from app.domain.query_model.ast import (
     Expression,
     FieldReference,
     FunctionExpression,
+    GroupByItem,
     InPredicate,
     IsNullPredicate,
     JoinNode,
@@ -161,7 +162,7 @@ class MySQLQueryCompiler(QueryCompiler):
             clauses.append(
                 "GROUP BY\n    "
                 + ",\n    ".join(
-                    self._expression(item.expression, scope_id, outer_scopes)
+                    self._group_by_expression(item, body, scope_id, outer_scopes)
                     for item in body.group_by
                 )
             )
@@ -526,13 +527,20 @@ class MySQLQueryCompiler(QueryCompiler):
             json.dumps(item.expression.model_dump(mode="json"), sort_keys=True, default=str)
             for item in body.group_by
         }
+        grouped_positions = {item.position for item in body.group_by if item.position is not None}
+        if any(position > len(body.select) for position in grouped_positions):
+            raise PublicError(
+                "QUERY_GROUPING_INVALID",
+                "Una posición de GROUP BY no corresponde a una expresión SELECT.",
+                422,
+            )
         has_aggregate = any(
             self._contains_aggregate(item.expression.model_dump(mode="json"))
             for item in body.select
         )
         if not grouped and not has_aggregate:
             return
-        for item in body.select:
+        for index, item in enumerate(body.select, start=1):
             expression = item.expression.model_dump(mode="json")
             if self._contains_aggregate(expression) or expression.get("node_type") in {
                 "literal",
@@ -540,12 +548,28 @@ class MySQLQueryCompiler(QueryCompiler):
             }:
                 continue
             key = json.dumps(expression, sort_keys=True, default=str)
-            if key not in grouped:
+            if key not in grouped and index not in grouped_positions:
                 raise PublicError(
                     "QUERY_GROUPING_INVALID",
                     "Una expresión seleccionada no agregada debe aparecer en GROUP BY.",
                     422,
                 )
+
+    def _group_by_expression(
+        self,
+        item: GroupByItem,
+        body: QueryBody,
+        scope_id: str,
+        outer_scopes: dict[str, str],
+    ) -> str:
+        if item.position is not None:
+            return str(item.position)
+        if not isinstance(item.expression, FieldReference):
+            grouped = item.expression.model_dump(mode="json")
+            for index, selected in enumerate(body.select, start=1):
+                if selected.expression.model_dump(mode="json") == grouped:
+                    return str(index)
+        return self._expression(item.expression, scope_id, outer_scopes)
 
     def _contains_aggregate(self, value: object) -> bool:
         if isinstance(value, dict):

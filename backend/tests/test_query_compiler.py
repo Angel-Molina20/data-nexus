@@ -375,12 +375,18 @@ def test_correlated_subquery_renames_an_inner_alias_that_shadows_the_outer_scope
             },
         }
     )
+    body["group_by"] = [
+        {"expression": copy.deepcopy(body["select"][0]["expression"])},
+        {"expression": copy.deepcopy(body["select"][1]["expression"])},
+    ]
 
     result = compile_document(document)
 
     assert "AS `s_2`" in result.sql
     assert "`s_2`.`id` = `s`.`id`" in result.sql
     assert "`s`.`id` = `s`.`id`" not in result.sql
+    assert "GROUP BY\n    `s`.`name`,\n    2" in result.sql
+    assert result.sql.count("FROM `academic`.`students` AS `s_2`") == 1
 
 
 def test_compiles_in_subquery_created_by_the_visual_filter_editor() -> None:

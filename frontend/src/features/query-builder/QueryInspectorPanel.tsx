@@ -513,6 +513,9 @@ function Grouping({
   const groupedExpressions = new Set(
     document.query.group_by.map((item) => canonical(item.expression)),
   );
+  const groupedPositions = new Set(
+    document.query.group_by.flatMap((item) => (item.position ? [item.position] : [])),
+  );
   const groupableExpressions = Array.from(
     document.query.select
       .filter((item) => requiresGroupBy(item.expression))
@@ -522,6 +525,7 @@ function Grouping({
           const fieldKey = `${String(item.expression.source_id)}:${String(item.expression.field_id)}`;
           items.set(key, {
             key,
+            position: index + 1,
             expression: item.expression,
             label:
               fields.find((field) => field.key === fieldKey)?.label ??
@@ -531,11 +535,11 @@ function Grouping({
           });
         }
         return items;
-      }, new Map<string, { key: string; expression: QueryExpression; label: string }>())
+      }, new Map<string, { key: string; position: number; expression: QueryExpression; label: string }>())
       .values(),
   );
   const pendingExpressions = groupableExpressions.filter(
-    (item) => !groupedExpressions.has(item.key),
+    (item) => !groupedExpressions.has(item.key) && !groupedPositions.has(item.position),
   );
   return (
     <section>
@@ -591,7 +595,9 @@ function Grouping({
         {document.query.group_by.map((item, index) => {
           const key = canonical(item.expression);
           const label =
-            groupableExpressions.find((entry) => entry.key === key)?.label ?? "Expresión agrupada";
+            groupableExpressions.find(
+              (entry) => entry.key === key || entry.position === item.position,
+            )?.label ?? "Expresión agrupada";
           return (
             <div
               className="flex items-center justify-between rounded-lg border p-2 text-sm"
