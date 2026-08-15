@@ -14,7 +14,7 @@ import type {
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- guarded array history operations */
 
 export type BuilderTab = "fields" | "filters" | "grouping" | "order" | "parameters" | "unions";
-export type BottomTab = "problems" | "parameters" | "sql" | "complexity" | "json";
+export type BottomTab = "results" | "problems" | "parameters" | "sql" | "complexity" | "json";
 
 export interface BuilderState {
   queryId: string;

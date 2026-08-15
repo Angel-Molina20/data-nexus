@@ -1,7 +1,8 @@
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, MousePointer2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import type { QueryDocument, QueryExpression, QueryParameter } from "../queries/types";
+import type { SchemaEntity } from "../schema/types";
 import { queryActions, uniqueId, type BuilderTab } from "./state";
 
 /* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment -- recursive expressions are backend-schema validated */
@@ -40,46 +41,84 @@ export function QueryInspectorPanel({
   readOnly,
   onTab,
   onChange,
-}: EditorProps & { tab: BuilderTab; onTab: (tab: BuilderTab) => void }) {
+  entities,
+  selectedJoinId,
+  selectedSourceId,
+}: EditorProps & {
+  entities: Record<string, SchemaEntity>;
+  selectedJoinId: string | null;
+  selectedSourceId: string | null;
+  tab: BuilderTab;
+  onTab: (tab: BuilderTab) => void;
+}) {
   const tabs: BuilderTab[] = ["fields", "filters", "grouping", "order", "parameters", "unions"];
+  const source = [document.query.source, ...document.query.joins.map((join) => join.source)].find(
+    (item) => item.source_id === selectedSourceId,
+  );
+  const join = document.query.joins.find((item) => item.join_id === selectedJoinId);
   return (
-    <aside
-      className="flex h-full min-h-0 flex-col border-l bg-white"
-      aria-label="Configuración de consulta"
-    >
-      <div className="flex gap-1 overflow-x-auto border-b p-2">
-        {tabs.map((item) => (
-          <button
-            className={`rounded-md px-2 py-1.5 text-xs font-semibold ${tab === item ? "bg-blue-100 text-blue-700" : "text-slate-500"}`}
-            key={item}
-            onClick={() => {
-              onTab(item);
-            }}
-          >
-            {labels[item]}
-          </button>
-        ))}
+    <aside className="flex h-full min-h-0 flex-col border-l bg-white" aria-label="Inspector">
+      <div className="border-b px-3 py-2.5">
+        <h2 className="text-sm font-semibold">Inspector</h2>
+        {source ? (
+          <p className="mt-0.5 truncate text-xs text-slate-500">
+            Entidad · {entities[source.entity_id]?.display_name ?? source.alias}
+          </p>
+        ) : join ? (
+          <p className="mt-0.5 truncate text-xs text-slate-500">
+            Relación · {join.join_type.toUpperCase()} · {join.source.alias}
+          </p>
+        ) : (
+          <p className="mt-0.5 text-xs text-slate-500">Contexto de la selección actual</p>
+        )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        {tab === "fields" ? (
-          <Fields document={document} readOnly={readOnly} onChange={onChange} />
-        ) : null}
-        {tab === "filters" ? (
-          <Filters document={document} readOnly={readOnly} onChange={onChange} />
-        ) : null}
-        {tab === "grouping" ? (
-          <Grouping document={document} readOnly={readOnly} onChange={onChange} />
-        ) : null}
-        {tab === "order" ? (
-          <Ordering document={document} readOnly={readOnly} onChange={onChange} />
-        ) : null}
-        {tab === "parameters" ? (
-          <Parameters document={document} readOnly={readOnly} onChange={onChange} />
-        ) : null}
-        {tab === "unions" ? (
-          <Unions document={document} readOnly={readOnly} onChange={onChange} />
-        ) : null}
-      </div>
+      {!source && !join ? (
+        <div className="grid min-h-0 flex-1 place-items-center p-5 text-center">
+          <div>
+            <MousePointer2 className="mx-auto size-6 text-slate-400" />
+            <p className="mt-2 text-sm font-semibold">Sin selección</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Selecciona una entidad o relación para ver sus propiedades.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex gap-1 overflow-x-auto border-b p-2">
+            {tabs.map((item) => (
+              <button
+                className={`rounded-md px-2 py-1.5 text-xs font-semibold ${tab === item ? "bg-blue-100 text-blue-700" : "text-slate-500"}`}
+                key={item}
+                onClick={() => {
+                  onTab(item);
+                }}
+              >
+                {labels[item]}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            {tab === "fields" ? (
+              <Fields document={document} readOnly={readOnly} onChange={onChange} />
+            ) : null}
+            {tab === "filters" ? (
+              <Filters document={document} readOnly={readOnly} onChange={onChange} />
+            ) : null}
+            {tab === "grouping" ? (
+              <Grouping document={document} readOnly={readOnly} onChange={onChange} />
+            ) : null}
+            {tab === "order" ? (
+              <Ordering document={document} readOnly={readOnly} onChange={onChange} />
+            ) : null}
+            {tab === "parameters" ? (
+              <Parameters document={document} readOnly={readOnly} onChange={onChange} />
+            ) : null}
+            {tab === "unions" ? (
+              <Unions document={document} readOnly={readOnly} onChange={onChange} />
+            ) : null}
+          </div>
+        </>
+      )}
     </aside>
   );
 }

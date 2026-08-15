@@ -18,6 +18,11 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
   const location = useLocation();
   const navigationType = useNavigationType();
   const pageTitle = getPageTitle(location.pathname);
+  const isQueryBuilder = /^\/queries\/[^/]+\/builder\/?$/.test(location.pathname);
+
+  useEffect(() => {
+    if (isQueryBuilder) setIsSidebarCollapsed(true);
+  }, [isQueryBuilder]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -39,7 +44,9 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
   }, [location.key, navigationType]);
 
   return (
-    <div className="flex min-h-screen min-w-0 bg-background text-foreground">
+    <div
+      className={`flex min-w-0 bg-background text-foreground ${isQueryBuilder ? "h-dvh overflow-hidden" : "min-h-screen"}`}
+    >
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => {
@@ -53,7 +60,9 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
         }}
       />
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      <div
+        className={`flex min-w-0 flex-1 flex-col ${isQueryBuilder ? "min-h-0" : "min-h-screen"}`}
+      >
         <TopHeader
           backendStatus={backendStatus}
           pageTitle={pageTitle}
@@ -61,8 +70,18 @@ export function AppLayout({ backendStatus, children }: AppLayoutProps) {
             setIsMobileMenuOpen(true);
           }}
         />
-        <main className="min-w-0 flex-1 overflow-x-hidden">
-          <div className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
+        <main
+          className={`min-w-0 flex-1 ${isQueryBuilder ? "min-h-0 overflow-hidden" : "overflow-x-hidden"}`}
+        >
+          <div
+            className={
+              isQueryBuilder
+                ? "flex h-full min-h-0 w-full flex-col"
+                : "w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+            }
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>

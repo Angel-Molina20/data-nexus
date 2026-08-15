@@ -6,13 +6,14 @@ import {
   MiniMap,
   Position,
   ReactFlow,
+  type ReactFlowInstance,
   type Edge,
   type Node,
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Database, KeyRound, ShieldAlert } from "lucide-react";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import type { QueryDocument } from "../queries/types";
 import type { SchemaEntity } from "../schema/types";
@@ -66,11 +67,23 @@ export function QueryCanvas({
   document,
   entities,
   onLayout,
+  onSelectJoin,
+  onSelectSource,
+  resizeKey,
+  selectedJoinId,
+  selectedSourceId,
 }: {
   document: QueryDocument;
   entities: Record<string, SchemaEntity>;
   onLayout: (sourceId: string, x: number, y: number) => void;
+  onSelectJoin: (joinId: string | null) => void;
+  onSelectSource: (sourceId: string | null) => void;
+  resizeKey: string;
+  selectedJoinId: string | null;
+  selectedSourceId: string | null;
 }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [flow, setFlow] = useState<ReactFlowInstance<Node<EntityNodeData>> | null>(null);
   const sources = [document.query.source, ...document.query.joins.map((join) => join.source)];
   const layout = document.metadata.builder_layout;
   const nodes = useMemo<Node<EntityNodeData>[]>(
@@ -99,9 +112,10 @@ export function QueryCanvas({
             fields: selected,
             sensitive: false,
           },
+          selected: source.source_id === selectedSourceId,
         };
       }),
-    [document, entities, layout, sources],
+    [document, entities, layout, selectedSourceId, sources],
   );
   const edges = useMemo<Edge[]>(
     () =>
@@ -113,22 +127,51 @@ export function QueryCanvas({
         markerEnd: { type: MarkerType.ArrowClosed },
         animated: Boolean(join.polymorphic_mapping_id),
         style: { strokeDasharray: join.on ? "7 4" : undefined },
+        selected: join.join_id === selectedJoinId,
       })),
-    [document],
+    [document, selectedJoinId],
   );
+  useEffect(() => {
+    if (!flow || !container.current) return;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        void flow.fitView({ duration: 0, padding: 0.16 });
+      });
+    });
+    observer.observe(container.current);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [flow, resizeKey]);
   return (
-    <div className="h-full min-h-[460px] bg-slate-50">
+    <div aria-label="Lienzo de consulta" className="h-full min-h-0 bg-slate-50" ref={container}>
       <ReactFlow
         nodeTypes={{ entity: EntityNode }}
         nodes={nodes}
         edges={edges}
         fitView
+        onEdgeClick={(_, edge) => {
+          onSelectSource(null);
+          onSelectJoin(edge.id);
+        }}
+        onInit={setFlow}
+        onNodeClick={(_, node) => {
+          onSelectJoin(null);
+          onSelectSource(node.id);
+        }}
         onNodeDragStop={(_, node) => {
           onLayout(node.id, node.position.x, node.position.y);
         }}
+        onPaneClick={() => {
+          onSelectJoin(null);
+          onSelectSource(null);
+        }}
       >
-        <Background />
-        <MiniMap pannable zoomable />
+        <Background color="#cbd5e1" gap={20} size={1} />
+        <MiniMap pannable position="bottom-right" zoomable />
         <Controls />
       </ReactFlow>
     </div>

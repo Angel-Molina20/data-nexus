@@ -1,5 +1,5 @@
 import { LoaderCircle, Play, RotateCw, Square } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { QueryDocument } from "../queries/types";
 import { ApiError } from "../../shared/api/httpClient";
@@ -14,12 +14,20 @@ export function QueryExecutionPanel({
   revision,
   canExecute,
   blocked,
+  cancelRequest = 0,
+  compact = false,
+  executeRequest = 0,
+  onStateChange,
 }: {
   document: QueryDocument;
   queryId: string;
   revision: number;
   canExecute: boolean;
   blocked: boolean;
+  cancelRequest?: number;
+  compact?: boolean;
+  executeRequest?: number;
+  onStateChange?: (state: QueryExecutionState) => void;
 }) {
   const defaults = useMemo(
     () =>
@@ -92,36 +100,67 @@ export function QueryExecutionPanel({
       (values[item.parameter_id] === undefined || values[item.parameter_id] === ""),
   );
   const totalPages = result?.execution.total_pages;
+  const executionState = useMemo<QueryExecutionState>(
+    () => ({
+      canRun: canExecute && !blocked && !missing,
+      hasResult: Boolean(result),
+      status,
+    }),
+    [blocked, canExecute, missing, result, status],
+  );
+  const lastExecuteRequest = useRef(executeRequest);
+  const lastCancelRequest = useRef(cancelRequest);
+  useEffect(() => {
+    onStateChange?.(executionState);
+  }, [executionState, onStateChange]);
+  useEffect(() => {
+    if (executeRequest !== lastExecuteRequest.current) {
+      lastExecuteRequest.current = executeRequest;
+      void run(1, pageSize);
+    }
+    // run intentionally reads the latest parameter values for an imperative toolbar request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [executeRequest]);
+  useEffect(() => {
+    if (cancelRequest !== lastCancelRequest.current) {
+      lastCancelRequest.current = cancelRequest;
+      void cancel();
+    }
+    // cancel intentionally reads the active execution at the moment of the toolbar request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cancelRequest]);
   return (
-    <section className="border-t bg-white" aria-live="polite">
-      <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-        <div className="mr-auto">
-          <h2 className="font-bold">Resultados</h2>
-          <p className="text-xs text-slate-500">Ejecución segura desde el AST validado</p>
+    <section className={compact ? "bg-white" : "border-t bg-white"} aria-live="polite">
+      {!compact ? (
+        <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
+          <div className="mr-auto">
+            <h2 className="font-bold">Resultados</h2>
+            <p className="text-xs text-slate-500">Ejecución segura desde el AST validado</p>
+          </div>
+          {status === "executing" || status === "cancelling" ? (
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                void cancel();
+              }}
+            >
+              <Square className="size-4" />
+              {status === "cancelling" ? "Cancelando…" : "Cancelar"}
+            </button>
+          ) : (
+            <button
+              className="btn-primary"
+              disabled={!canExecute || blocked || missing}
+              onClick={() => {
+                void run(1, pageSize);
+              }}
+            >
+              {result ? <RotateCw className="size-4" /> : <Play className="size-4" />}
+              {result ? "Volver a ejecutar" : "Ejecutar consulta"}
+            </button>
+          )}
         </div>
-        {status === "executing" || status === "cancelling" ? (
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              void cancel();
-            }}
-          >
-            <Square className="size-4" />
-            {status === "cancelling" ? "Cancelando…" : "Cancelar"}
-          </button>
-        ) : (
-          <button
-            className="btn-primary"
-            disabled={!canExecute || blocked || missing}
-            onClick={() => {
-              void run(1, pageSize);
-            }}
-          >
-            {result ? <RotateCw className="size-4" /> : <Play className="size-4" />}
-            {result ? "Volver a ejecutar" : "Ejecutar consulta"}
-          </button>
-        )}
-      </div>
+      ) : null}
       <div className="space-y-3 p-3">
         <QueryParametersPanel
           parameters={document.parameters}
@@ -193,4 +232,10 @@ export function QueryExecutionPanel({
       </div>
     </section>
   );
+}
+
+export interface QueryExecutionState {
+  canRun: boolean;
+  hasResult: boolean;
+  status: "idle" | "executing" | "failed" | "cancelling";
 }
