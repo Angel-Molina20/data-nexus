@@ -1,9 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 14 de agosto de 2026. Las Fases 0–18 están completadas; la última
-entrega corresponde a la **Fase 18**, navegación, retorno contextual y
-preservación de contexto, seguida por correcciones de compatibilidad en la
-sincronización MySQL.
+Actualizado: 15 de agosto de 2026. Las Fases 0–19 están completadas; la última
+entrega corresponde a la **Fase 19**, rediseño estructural del constructor
+visual como workspace profesional.
 
 ## 1. Objetivo general
 
@@ -794,3 +793,34 @@ Estado: **completado el 14 de agosto de 2026**.
 - La fixture incluye un campo `LONGTEXT`. Ruff, MyPy, 3 regresiones unitarias,
   2 sincronizaciones de integración contra MySQL 5.6/MySQL 8 y la suite completa
   de 103 pruebas backend finalizaron correctamente.
+
+## 20. Fase 19 — rediseño estructural del constructor visual
+
+Estado: **completada el 15 de agosto de 2026**.
+
+- El constructor usa toda la altura restante del shell mediante flex/grid y
+  deja de acumular catálogo, canvas, inspector, validación y resultados en una
+  página vertical extensa.
+- Toolbar sticky compacta con navegación contextual, consulta/guardado,
+  undo/redo, Guardar, Validar, Ejecutar/Cancelar y acciones secundarias.
+- Catálogo izquierdo, React Flow central, inspector contextual derecho y panel
+  inferior con Resultados, Problemas, Parámetros, SQL, Complejidad y JSON.
+- Paneles laterales e inferior plegables y redimensionables sin dependencia
+  nueva. Handles con Pointer Events, teclado, límites y doble clic para reset.
+- Modo enfoque y Restablecer diseño. Preferencias visuales v1 validadas en
+  `localStorage`; nunca entran al AST, fingerprint, dirty state ni undo/redo.
+- React Flow permanece montado y usa `ResizeObserver` + `fitView` al cambiar su
+  contenedor, conservando nodos, edges, selección y posiciones.
+- Resultados existentes integrados y conservados entre tabs. Validar abre
+  Problemas, compilar abre SQL y ejecutar abre Resultados; cancelación y
+  conflictos mantienen los contratos existentes.
+- Desde 1200 px se ofrece workspace multicolumna. En resoluciones menores,
+  catálogo e inspector usan Drawer; 1366×768 y 1280×720 son utilizables sin
+  scroll vertical general del documento.
+- Pruebas nuevas cubren defaults, corrupción, persistencia/reset, resize por
+  teclado, regiones, colapsado y ausencia de acciones dirty. El E2E cubre
+  ejecución, paginación, retry, preferencias, reset, validación y cuatro
+  resoluciones desktop.
+- Documentación completa: `docs/QUERY_BUILDER_UI.md`.
+- Límites: no se adelantaron el árbol/campos de Fase 20, filtros de Fase 21,
+  relaciones de Fase 22, campos avanzados de Fase 23 ni resultados de Fase 25.

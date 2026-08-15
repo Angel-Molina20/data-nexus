@@ -28,8 +28,6 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
   const [state, dispatch] = useReducer(builderReducer, createBuilderState(savedQuery, isReadOnly));
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [isRelationshipDialogOpen, setRelationshipDialogOpen] = useState(false);
-  const [isCatalogOpen, setCatalogOpen] = useState(true);
-  const [isInspectorOpen, setInspectorOpen] = useState(true);
   const connection = useQuery({
     queryKey: ["connection", savedQuery.connection_id],
     queryFn: () => getConnection(savedQuery.connection_id),
@@ -139,8 +137,6 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
     dispatch,
     duplicate,
     entities,
-    isCatalogOpen,
-    isInspectorOpen,
     isReadOnly,
     isRelationshipDialogOpen,
     leave,
@@ -150,9 +146,7 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
     returnTo,
     save,
     savedQuery,
-    setCatalogOpen,
     saveDocument,
-    setInspectorOpen,
     setRelationshipDialogOpen,
     state,
     unsaved,

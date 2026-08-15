@@ -1,56 +1,96 @@
-import { CheckCircle2, Copy, Info, TriangleAlert, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Info,
+  TriangleAlert,
+  XCircle,
+} from "lucide-react";
+import type { ReactNode } from "react";
 
 import type { QueryDocument, QueryIssue } from "../queries/types";
+import { IconButton } from "../../components/ui/IconButton";
 import type { BottomTab, BuilderState } from "./state";
 
 export function QueryBottomPanel({
   state,
   localProblems,
   onTab,
+  collapsed,
+  onCollapsedChange,
+  results,
 }: {
   state: BuilderState;
   localProblems: QueryIssue[];
   onTab: (tab: BottomTab) => void;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+  results: ReactNode;
 }) {
-  const tabs: BottomTab[] = ["problems", "parameters", "sql", "complexity", "json"];
+  const tabs: BottomTab[] = ["results", "problems", "parameters", "sql", "complexity", "json"];
   return (
-    <section className="border-t bg-white">
-      <div className="flex overflow-x-auto border-b px-3">
-        {tabs.map((tab) => (
-          <button
-            className={`border-b-2 px-4 py-2 text-xs font-semibold ${state.bottomTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}
-            key={tab}
-            onClick={() => {
-              onTab(tab);
-            }}
-          >
-            {names[tab]}
-            {tab === "problems" && localProblems.length ? ` (${String(localProblems.length)})` : ""}
-          </button>
-        ))}
+    <section aria-label="Resultados y validación" className="flex h-full min-h-0 flex-col bg-white">
+      <div className="flex min-h-10 items-center border-b px-2">
+        <div
+          aria-label="Panel inferior"
+          className="flex min-w-0 flex-1 overflow-x-auto"
+          role="tablist"
+        >
+          {tabs.map((tab) => (
+            <button
+              aria-selected={state.bottomTab === tab}
+              className={`min-h-10 whitespace-nowrap border-b-2 px-3 text-xs font-semibold ${state.bottomTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}
+              key={tab}
+              onClick={() => {
+                onTab(tab);
+                if (collapsed) onCollapsedChange(false);
+              }}
+              role="tab"
+            >
+              {names[tab]}
+              {tab === "problems" && localProblems.length
+                ? ` (${String(localProblems.length)})`
+                : ""}
+            </button>
+          ))}
+        </div>
+        <IconButton
+          label={collapsed ? "Expandir panel inferior" : "Minimizar panel inferior"}
+          onClick={() => {
+            onCollapsedChange(!collapsed);
+          }}
+          size="sm"
+        >
+          {collapsed ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+        </IconButton>
       </div>
-      <div className="h-48 overflow-auto p-4">
-        {state.bottomTab === "problems" ? (
-          <Problems
-            local={localProblems}
-            remote={
-              state.validation ? [...state.validation.errors, ...state.validation.warnings] : []
-            }
-          />
-        ) : null}
-        {state.bottomTab === "parameters" ? (
-          <ParameterSummary document={state.workingQuery} />
-        ) : null}
-        {state.bottomTab === "sql" ? <Sql state={state} /> : null}
-        {state.bottomTab === "complexity" ? <Complexity state={state} /> : null}
-        {state.bottomTab === "json" ? (
-          <pre className="text-xs">{JSON.stringify(state.workingQuery, null, 2)}</pre>
-        ) : null}
-      </div>
+      {!collapsed ? (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <div hidden={state.bottomTab !== "results"}>{results}</div>
+          {state.bottomTab === "problems" ? (
+            <Problems
+              local={localProblems}
+              remote={
+                state.validation ? [...state.validation.errors, ...state.validation.warnings] : []
+              }
+            />
+          ) : null}
+          {state.bottomTab === "parameters" ? (
+            <ParameterSummary document={state.workingQuery} />
+          ) : null}
+          {state.bottomTab === "sql" ? <Sql state={state} /> : null}
+          {state.bottomTab === "complexity" ? <Complexity state={state} /> : null}
+          {state.bottomTab === "json" ? (
+            <pre className="text-xs">{JSON.stringify(state.workingQuery, null, 2)}</pre>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
 const names: Record<BottomTab, string> = {
+  results: "Resultados",
   problems: "Problemas",
   parameters: "Parámetros",
   sql: "SQL",

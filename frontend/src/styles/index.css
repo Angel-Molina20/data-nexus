@@ -256,6 +256,56 @@ textarea:disabled {
     @apply flex min-h-20 min-w-0 items-center gap-3 px-5 py-4 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px];
   }
 
+  .query-builder-toolbar {
+    @apply sticky top-0 z-[var(--z-sticky)] flex min-h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-2.5 py-2 shadow-sm sm:px-4;
+  }
+  .query-builder-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .query-builder-desktop-panel,
+  .query-builder-resize-handle {
+    display: none;
+  }
+  .query-builder-resize-handle {
+    position: relative;
+    z-index: 5;
+    touch-action: none;
+    background: var(--dn-color-border);
+  }
+  .query-builder-resize-handle::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    background: var(--dn-color-border-strong);
+    transition: background-color 120ms ease;
+  }
+  .query-builder-resize-handle:hover::after,
+  .query-builder-resize-handle:focus-visible::after {
+    background: var(--dn-color-primary);
+  }
+  .query-builder-resize-handle--vertical {
+    width: 8px;
+    cursor: col-resize;
+  }
+  .query-builder-resize-handle--vertical::after {
+    inset-block: calc(50% - 20px);
+    left: 3px;
+    width: 2px;
+  }
+  .query-builder-resize-handle--horizontal {
+    display: block;
+    height: 8px;
+    flex: none;
+    cursor: row-resize;
+  }
+  .query-builder-resize-handle--horizontal::after {
+    inset-inline: calc(50% - 20px);
+    top: 3px;
+    height: 2px;
+  }
+
   .auth-shell {
     min-height: 100vh;
     min-height: 100dvh;
@@ -336,6 +386,27 @@ textarea:disabled {
   .auth-data-flow__node--result {
     right: 4%;
     top: 40%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .query-builder-desktop-panel,
+  .query-builder-resize-handle--vertical {
+    display: block;
+  }
+  .query-builder-grid[data-left="true"][data-right="true"] {
+    grid-template-columns:
+      var(--builder-left-width) 8px minmax(20rem, 1fr) 8px
+      var(--builder-right-width);
+  }
+  .query-builder-grid[data-left="true"][data-right="false"] {
+    grid-template-columns: var(--builder-left-width) 8px minmax(20rem, 1fr);
+  }
+  .query-builder-grid[data-left="false"][data-right="true"] {
+    grid-template-columns: minmax(20rem, 1fr) 8px var(--builder-right-width);
+  }
+  .query-builder-grid[data-left="false"][data-right="false"] {
+    grid-template-columns: minmax(20rem, 1fr);
   }
 }
 
