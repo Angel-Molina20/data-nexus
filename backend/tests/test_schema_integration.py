@@ -44,6 +44,14 @@ async def test_schema_catalog_lifecycle(async_client: AsyncClient, prefix: str) 
     enrollment = entities.json()["items"][0]
     assert enrollment["has_primary_key"] is True
     assert enrollment["indexes_count"] >= 2
+    assert enrollment["schema_name"]
+
+    entities_by_field = await async_client.get(
+        f"/api/v1/connections/{connection_id}/schema/entities",
+        params={"search": "STUDENT_ID"},
+    )
+    assert entities_by_field.status_code == 200
+    assert any(item["physical_name"] == "enrollments" for item in entities_by_field.json()["items"])
 
     detail = await async_client.get(
         f"/api/v1/connections/{connection_id}/schema/entities/{enrollment['id']}"

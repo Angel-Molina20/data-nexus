@@ -10,12 +10,15 @@ export function SearchInput({ loading = false, onClear, value, ...props }: Searc
   return (
     <Input
       endIcon={
-        loading ? (
-          <LoaderCircle className="size-4 animate-spin" />
-        ) : value && onClear ? (
-          <IconButton label="Limpiar búsqueda" onClick={onClear} size="sm">
-            <X className="size-3" />
-          </IconButton>
+        loading || (value && onClear) ? (
+          <span className="flex items-center gap-1">
+            {loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            {value && onClear ? (
+              <IconButton label="Limpiar búsqueda" onClick={onClear} size="sm">
+                <X className="size-3" />
+              </IconButton>
+            ) : null}
+          </span>
         ) : null
       }
       startIcon={<Search className="size-4" />}

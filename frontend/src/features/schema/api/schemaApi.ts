@@ -15,15 +15,26 @@ export const getSchemaSummary = (connectionId: string) =>
   apiRequest<SchemaSummary>(`${base(connectionId)}/summary`);
 export function listSchemaEntities(
   connectionId: string,
-  filters: { search?: string; entityType?: string; isActive?: boolean } = {},
+  filters: {
+    search?: string;
+    entityType?: string;
+    isActive?: boolean;
+    page?: number;
+    pageSize?: number;
+  } = {},
 ) {
   const query = new URLSearchParams();
   if (filters.search) query.set("search", filters.search);
   if (filters.entityType) query.set("entity_type", filters.entityType);
   if (filters.isActive !== undefined) query.set("is_active", String(filters.isActive));
-  return apiRequest<{ items: SchemaEntitySummary[]; total: number }>(
-    `${base(connectionId)}/entities?${query}`,
-  );
+  if (filters.page) query.set("page", String(filters.page));
+  if (filters.pageSize) query.set("page_size", String(filters.pageSize));
+  return apiRequest<{
+    items: SchemaEntitySummary[];
+    total: number;
+    page: number;
+    page_size: number;
+  }>(`${base(connectionId)}/entities?${query}`);
 }
 export const getSchemaEntity = (connectionId: string, entityId: string) =>
   apiRequest<SchemaEntity>(`${base(connectionId)}/entities/${encodeURIComponent(entityId)}`);

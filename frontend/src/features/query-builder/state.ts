@@ -170,6 +170,45 @@ export const queryActions = {
       });
     });
   },
+  setFields(
+    document: QueryDocument,
+    sourceId: string,
+    fields: Array<{ id: string; label: string }>,
+    selected: boolean,
+  ): QueryDocument {
+    return this.update(document, (draft) => {
+      const fieldIds = new Set(fields.map((field) => field.id));
+      if (!selected) {
+        draft.query.select = draft.query.select.filter(
+          (item) =>
+            item.expression.node_type !== "field" ||
+            item.expression.source_id !== sourceId ||
+            typeof item.expression.field_id !== "string" ||
+            !fieldIds.has(item.expression.field_id),
+        );
+        return;
+      }
+      const existing = new Set(
+        draft.query.select.flatMap((item) =>
+          item.expression.node_type === "field" &&
+          item.expression.source_id === sourceId &&
+          typeof item.expression.field_id === "string"
+            ? [item.expression.field_id]
+            : [],
+        ),
+      );
+      for (const field of fields) {
+        if (existing.has(field.id)) continue;
+        draft.query.select.push({
+          select_id: uniqueId("field"),
+          item_type: "field",
+          expression: { node_type: "field", source_id: sourceId, field_id: field.id },
+          label: field.label,
+          hidden: false,
+        });
+      }
+    });
+  },
   removeSelect(document: QueryDocument, selectId: string) {
     return this.update(document, (draft) => {
       if (draft.query.select.length > 1)

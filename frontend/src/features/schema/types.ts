@@ -18,6 +18,7 @@ export interface SchemaSummary {
 }
 export interface SchemaEntitySummary {
   id: string;
+  schema_name: string;
   physical_name: string;
   display_name: string;
   entity_type: "table" | "view";

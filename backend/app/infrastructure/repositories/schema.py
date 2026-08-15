@@ -185,7 +185,27 @@ class SchemaRepository:
     ) -> tuple[list[dict[str, Any]], int]:
         filters: list[Any] = [SchemaEntity.connection_id == connection_id]
         if search:
-            filters.append(SchemaEntity.physical_name.ilike(f"%{search}%"))
+            pattern = f"%{search}%"
+            matching_field = (
+                select(SchemaField.id)
+                .where(
+                    SchemaField.entity_id == SchemaEntity.id,
+                    SchemaField.is_active.is_(True),
+                    or_(
+                        SchemaField.physical_name.ilike(pattern),
+                        SchemaField.display_name.ilike(pattern),
+                    ),
+                )
+                .exists()
+            )
+            filters.append(
+                or_(
+                    SchemaEntity.physical_name.ilike(pattern),
+                    SchemaEntity.display_name.ilike(pattern),
+                    SchemaEntity.schema_name.ilike(pattern),
+                    matching_field,
+                )
+            )
         if entity_type:
             filters.append(SchemaEntity.entity_type == entity_type)
         if is_active is not None:
@@ -265,6 +285,7 @@ class SchemaRepository:
             result.append(
                 {
                     "id": entity.id,
+                    "schema_name": entity.schema_name,
                     "physical_name": entity.physical_name,
                     "display_name": entity.display_name,
                     "entity_type": entity.entity_type,

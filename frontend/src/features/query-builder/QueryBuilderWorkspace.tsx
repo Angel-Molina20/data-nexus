@@ -56,28 +56,18 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
     <QueryCatalogPanel
       canUseSensitive={builder.auth.hasPermission("queries.use_sensitive_fields")}
       document={state.workingQuery}
+      onAddRelationship={() => {
+        builder.setRelationshipDialogOpen(true);
+      }}
       onEntity={(sourceId) => {
         dispatch({ type: "select_source", sourceId });
         setSelectedJoinId(null);
         setSelectedSourceId(sourceId);
       }}
-      onField={(fieldId, label) => {
-        builder.modify(
-          queryActions.addField(state.workingQuery, state.selectedSourceId, fieldId, label),
-        );
+      onFields={(sourceId, fields, selected) => {
+        builder.modify(queryActions.setFields(state.workingQuery, sourceId, fields, selected));
       }}
-      onInspect={(entityId) => {
-        const source = [
-          state.workingQuery.query.source,
-          ...state.workingQuery.query.joins.map((join) => join.source),
-        ].find((item) => item.entity_id === entityId);
-        if (source) {
-          dispatch({ type: "select_source", sourceId: source.source_id });
-          setSelectedJoinId(null);
-          setSelectedSourceId(source.source_id);
-        }
-      }}
-      selectedSourceId={state.selectedSourceId}
+      readOnly={builder.isReadOnly}
     />
   );
   const inspector = (

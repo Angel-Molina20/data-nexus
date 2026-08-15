@@ -61,6 +61,33 @@ describe("query builder state", () => {
     expect(redone.workingQuery.query.select).toHaveLength(2);
   });
 
+  it("selects and deselects many fields as one undoable AST change", () => {
+    const initial = createBuilderState(saved(), false);
+    const selected = queryActions.setFields(
+      initial.workingQuery,
+      "src_main",
+      [
+        { id: "first_name", label: "Nombre" },
+        { id: "email", label: "Correo" },
+      ],
+      true,
+    );
+    const edited = builderReducer(initial, { type: "replace", document: selected });
+    expect(edited.workingQuery.query.select).toHaveLength(3);
+    expect(edited.history).toHaveLength(1);
+    const cleared = builderReducer(edited, {
+      type: "replace",
+      document: queryActions.setFields(
+        edited.workingQuery,
+        "src_main",
+        [{ id: "email", label: "Correo" }],
+        false,
+      ),
+    });
+    expect(cleared.workingQuery.query.select.some((item) => item.label === "Correo")).toBe(false);
+    expect(builderReducer(cleared, { type: "undo" }).workingQuery.query.select).toHaveLength(3);
+  });
+
   it("keeps read-only mode immutable and validates duplicate aliases", () => {
     const initial = createBuilderState(saved(), true);
     const changed = queryActions.setBodyValue(initial.workingQuery, { distinct: true });
