@@ -327,6 +327,134 @@ def test_compiles_exists_with_correlation() -> None:
     assert "supports_subqueries" in result.capabilities_used
 
 
+def test_correlated_subquery_renames_an_inner_alias_that_shadows_the_outer_scope() -> None:
+    document = base_query()
+    body = document["query"]
+    assert isinstance(body, dict)
+    body["select"].append(
+        {
+            "select_id": "career_subquery",
+            "item_type": "subquery",
+            "expression": {
+                "node_type": "subquery",
+                "query_id": "career_subquery",
+                "query": {
+                    "scope_id": "career_scope",
+                    "source": {
+                        "source_id": "inner_students",
+                        "entity_id": str(STUDENTS_ID),
+                        "alias": "s",
+                    },
+                    "select": [
+                        {
+                            "select_id": "inner_name",
+                            "item_type": "field",
+                            "expression": {
+                                "node_type": "field",
+                                "source_id": "inner_students",
+                                "field_id": str(STUDENT_NAME),
+                            },
+                        }
+                    ],
+                    "where": {
+                        "node_type": "comparison",
+                        "operator": "equals",
+                        "left": {
+                            "node_type": "field",
+                            "source_id": "inner_students",
+                            "field_id": str(STUDENT_FIELD),
+                        },
+                        "right": {
+                            "node_type": "outer_field",
+                            "scope_id": "root",
+                            "source_id": "students",
+                            "field_id": str(STUDENT_FIELD),
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    result = compile_document(document)
+
+    assert "AS `s_2`" in result.sql
+    assert "`s_2`.`id` = `s`.`id`" in result.sql
+    assert "`s`.`id` = `s`.`id`" not in result.sql
+
+
+def test_compiles_in_subquery_created_by_the_visual_filter_editor() -> None:
+    document = base_query()
+    body = document["query"]
+    assert isinstance(body, dict)
+    body["where"] = {
+        "node_type": "in",
+        "expression": {
+            "node_type": "field",
+            "source_id": "students",
+            "field_id": str(STUDENT_CAREER),
+        },
+        "values": None,
+        "subquery": {
+            "node_type": "subquery",
+            "query_id": "allowed_careers",
+            "correlation": [],
+            "query": {
+                "scope_id": "career_scope",
+                "source": {
+                    "source_id": "careers",
+                    "entity_id": str(CAREERS_ID),
+                    "alias": "c",
+                },
+                "select": [
+                    {
+                        "select_id": "career_id",
+                        "item_type": "field",
+                        "expression": {
+                            "node_type": "field",
+                            "source_id": "careers",
+                            "field_id": str(CAREER_FIELD),
+                        },
+                    }
+                ],
+            },
+        },
+        "negated": False,
+    }
+
+    result = compile_document(document)
+
+    assert "`s`.`career_id` IN (SELECT" in result.sql
+    assert "`c`.`id`" in result.sql
+    assert "supports_subqueries" in result.capabilities_used
+
+
+def test_compiles_group_concat_as_an_aggregate() -> None:
+    document = base_query()
+    body = document["query"]
+    assert isinstance(body, dict)
+    body["select"] = [
+        {
+            "select_id": "names",
+            "item_type": "aggregate",
+            "expression": {
+                "node_type": "aggregate",
+                "aggregate": "group_concat",
+                "argument": {
+                    "node_type": "field",
+                    "source_id": "students",
+                    "field_id": str(STUDENT_NAME),
+                },
+                "distinct": False,
+            },
+        }
+    ]
+
+    result = compile_document(document)
+
+    assert "GROUP_CONCAT(`s`.`name`)" in result.sql
+
+
 def test_rejects_missing_capability() -> None:
     document = base_query()
     body = document["query"]

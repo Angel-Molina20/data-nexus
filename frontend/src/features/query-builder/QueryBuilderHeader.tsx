@@ -4,7 +4,6 @@ import {
   FileJson2,
   Focus,
   Network,
-  PanelBottom,
   PanelLeft,
   PanelRight,
   Play,
@@ -29,7 +28,6 @@ import { returnState } from "../../shared/navigation/navigationState";
 import type { BuilderState } from "./state";
 
 interface QueryBuilderHeaderProps {
-  bottomCollapsed: boolean;
   busy: string | null;
   canCompile: boolean;
   canExecute: boolean;
@@ -39,6 +37,7 @@ interface QueryBuilderHeaderProps {
   focusMode: boolean;
   leftCollapsed: boolean;
   name: string;
+  primaryAction: "compile" | "execute";
   onAddRelationship: () => void;
   onCancel: () => void;
   onCompile: () => void;
@@ -47,7 +46,6 @@ interface QueryBuilderHeaderProps {
   onResetDocument: () => void;
   onResetLayout: () => void;
   onSave: (validate: boolean) => void;
-  onToggleBottom: () => void;
   onToggleFocus: () => void;
   onToggleLeft: () => void;
   onToggleRight: () => void;
@@ -133,13 +131,6 @@ export function QueryBuilderHeader(props: QueryBuilderHeaderProps) {
             <PanelRight className="size-4" />
           </IconButton>
           <IconButton
-            label={props.bottomCollapsed ? "Expandir panel inferior" : "Minimizar panel inferior"}
-            onClick={props.onToggleBottom}
-            size="sm"
-          >
-            <PanelBottom className="size-4" />
-          </IconButton>
-          <IconButton
             label={props.focusMode ? "Salir del modo enfoque" : "Activar modo enfoque"}
             onClick={props.onToggleFocus}
             size="sm"
@@ -181,22 +172,31 @@ export function QueryBuilderHeader(props: QueryBuilderHeaderProps) {
           </Button>
         ) : (
           <Button
-            disabled={!props.canExecute || !props.execution.canRun}
-            onClick={props.onExecute}
+            disabled={
+              props.primaryAction === "compile"
+                ? !props.canCompile || Boolean(props.busy)
+                : !props.canExecute || !props.execution.canRun
+            }
+            loading={props.primaryAction === "compile" && props.busy === "compile"}
+            onClick={props.primaryAction === "compile" ? props.onCompile : props.onExecute}
             size="sm"
-            startIcon={<Play className="size-4" />}
+            startIcon={
+              props.primaryAction === "compile" ? (
+                <Code2 className="size-4" />
+              ) : (
+                <Play className="size-4" />
+              )
+            }
           >
-            {props.execution.hasResult ? "Reejecutar" : "Ejecutar"}
+            {props.primaryAction === "compile"
+              ? "Compilar"
+              : props.execution.hasResult
+                ? "Reejecutar"
+                : "Ejecutar"}
           </Button>
         )}
         <DropdownMenu
           items={[
-            {
-              disabled: !props.canCompile || Boolean(props.busy),
-              icon: <Code2 className="size-4" />,
-              label: "Compilar SQL",
-              onSelect: props.onCompile,
-            },
             {
               icon: <FileJson2 className="size-4" />,
               label: "Abrir JSON técnico",
@@ -219,7 +219,7 @@ export function QueryBuilderHeader(props: QueryBuilderHeaderProps) {
               onSelect: props.onResetDocument,
             },
             {
-              icon: <PanelBottom className="size-4" />,
+              icon: <RotateCcw className="size-4" />,
               label: "Restablecer diseño",
               onSelect: props.onResetLayout,
             },

@@ -13,8 +13,15 @@ import type {
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- guarded array history operations */
 
-export type BuilderTab = "fields" | "filters" | "grouping" | "order" | "parameters" | "unions";
-export type BottomTab = "results" | "problems" | "parameters" | "sql" | "complexity" | "json";
+export type BuilderTab = "fields" | "grouping" | "order" | "parameters" | "unions";
+export type BottomTab =
+  | "results"
+  | "filters"
+  | "problems"
+  | "parameters"
+  | "sql"
+  | "complexity"
+  | "json";
 
 export interface BuilderState {
   queryId: string;
@@ -47,7 +54,29 @@ export type BuilderAction =
   | { type: "reset" };
 
 const clone = <T>(value: T): T => structuredClone(value);
-export const canonical = (value: QueryDocument) => JSON.stringify(value);
+const canonicalValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => [key, canonicalValue(child)]),
+  );
+};
+
+export const canonical = (value: unknown) => JSON.stringify(canonicalValue(value));
+
+export const containsAggregateExpression = (value: unknown): boolean => {
+  if (Array.isArray(value)) return value.some(containsAggregateExpression);
+  if (!value || typeof value !== "object") return false;
+  const node = value as Record<string, unknown>;
+  return node.node_type === "aggregate" || Object.values(node).some(containsAggregateExpression);
+};
+
+export const requiresGroupBy = (expression: QueryExpression): boolean =>
+  !containsAggregateExpression(expression) &&
+  expression.node_type !== "literal" &&
+  expression.node_type !== "parameter";
 
 export function createBuilderState(saved: SavedQuery, readOnly: boolean): BuilderState {
   return {
@@ -253,7 +282,27 @@ export const queryActions = {
   },
   addGroupBy(document: QueryDocument, expression: QueryExpression) {
     return this.update(document, (draft) => {
-      draft.query.group_by.push({ expression });
+      const key = canonical(expression);
+      if (!draft.query.group_by.some((item) => canonical(item.expression) === key))
+        draft.query.group_by.push({ expression });
+    });
+  },
+  addSelectedFieldsToGroupBy(document: QueryDocument) {
+    return this.update(document, (draft) => {
+      const grouped = new Set(draft.query.group_by.map((item) => canonical(item.expression)));
+      for (const item of draft.query.select) {
+        if (!requiresGroupBy(item.expression)) continue;
+        const key = canonical(item.expression);
+        if (!grouped.has(key)) {
+          draft.query.group_by.push({ expression: clone(item.expression) });
+          grouped.add(key);
+        }
+      }
+    });
+  },
+  clearGroupBy(document: QueryDocument) {
+    return this.update(document, (draft) => {
+      draft.query.group_by = [];
     });
   },
   addOrderBy(document: QueryDocument, expression: QueryExpression) {
@@ -261,9 +310,27 @@ export const queryActions = {
       draft.query.order_by.push({ expression, direction: "ascending", nulls: "engine_default" });
     });
   },
+  removeOrderBy(document: QueryDocument, index: number) {
+    return this.update(document, (draft) => {
+      draft.query.order_by.splice(index, 1);
+    });
+  },
   addParameter(document: QueryDocument, parameter: QueryParameter) {
     return this.update(document, (draft) => {
       draft.parameters.push(parameter);
+    });
+  },
+  removeParameter(document: QueryDocument, parameterId: string) {
+    return this.update(document, (draft) => {
+      draft.parameters = draft.parameters.filter((item) => item.parameter_id !== parameterId);
+      draft.parameters.forEach((item, index) => {
+        item.display_order = index;
+      });
+    });
+  },
+  removeUnion(document: QueryDocument, unionId: string) {
+    return this.update(document, (draft) => {
+      draft.query.unions = draft.query.unions.filter((item) => item.union_id !== unionId);
     });
   },
   setBodyValue(document: QueryDocument, values: Partial<QueryBody>) {
@@ -297,6 +364,32 @@ export const localIssues = (document: QueryDocument): QueryIssue[] => {
   const issues: QueryIssue[] = [];
   const sources = [document.query.source, ...document.query.joins.map((item) => item.source)];
   const aliases = new Set<string>();
+  const grouped = new Set(document.query.group_by.map((item) => canonical(item.expression)));
+  const hasAggregate = document.query.select.some((item) =>
+    containsAggregateExpression(item.expression),
+  );
+  if (grouped.size || hasAggregate) {
+    document.query.select.forEach((item, index) => {
+      if (
+        containsAggregateExpression(item.expression) ||
+        item.expression.node_type === "literal" ||
+        item.expression.node_type === "parameter" ||
+        grouped.has(canonical(item.expression))
+      )
+        return;
+      issues.push({
+        code: "QUERY_GROUPING_INVALID",
+        message: `${
+          item.expression.node_type === "field"
+            ? `${sources.find((source) => source.source_id === item.expression.source_id)?.alias ?? "entidad"}.${item.label ?? String(item.expression.field_id)}`
+            : (item.label ?? item.alias ?? `Campo ${String(index + 1)}`)
+        } debe agregarse a GROUP BY.`,
+        severity: "error",
+        path: `query.select[${String(index)}].expression`,
+        node_id: item.select_id,
+      });
+    });
+  }
   for (const source of sources) {
     if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(source.alias))
       issues.push({

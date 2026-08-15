@@ -10,7 +10,9 @@ import {
 import type { ReactNode } from "react";
 
 import type { QueryDocument, QueryIssue } from "../queries/types";
+import type { SchemaEntity } from "../schema/types";
 import { IconButton } from "../../components/ui/IconButton";
+import { QueryFilterEditor } from "./filters/components/QueryFilterEditor";
 import type { BottomTab, BuilderState } from "./state";
 
 export function QueryBottomPanel({
@@ -20,6 +22,12 @@ export function QueryBottomPanel({
   collapsed,
   onCollapsedChange,
   results,
+  entities,
+  readOnly,
+  canUseSensitive,
+  onDocumentChange,
+  filterFocus,
+  onFilterIssue,
 }: {
   state: BuilderState;
   localProblems: QueryIssue[];
@@ -27,8 +35,22 @@ export function QueryBottomPanel({
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   results: ReactNode;
+  entities: Record<string, SchemaEntity>;
+  readOnly: boolean;
+  canUseSensitive: boolean;
+  onDocumentChange: (document: QueryDocument) => void;
+  filterFocus: string | null;
+  onFilterIssue: (issue: QueryIssue) => void;
 }) {
-  const tabs: BottomTab[] = ["results", "problems", "parameters", "sql", "complexity", "json"];
+  const tabs: BottomTab[] = [
+    "results",
+    "filters",
+    "problems",
+    "parameters",
+    "sql",
+    "complexity",
+    "json",
+  ];
   return (
     <section aria-label="Resultados y validación" className="flex h-full min-h-0 flex-col bg-white">
       <div className="flex min-h-10 items-center border-b px-2">
@@ -68,18 +90,30 @@ export function QueryBottomPanel({
       {!collapsed ? (
         <div className="min-h-0 flex-1 overflow-auto p-3">
           <div hidden={state.bottomTab !== "results"}>{results}</div>
+          {state.bottomTab === "filters" ? (
+            <QueryFilterEditor
+              canUseSensitive={canUseSensitive}
+              document={state.workingQuery}
+              entities={entities}
+              focusIssueId={filterFocus}
+              initialArea={filterFocus?.startsWith("having:") ? "having" : "where"}
+              onChange={onDocumentChange}
+              readOnly={readOnly}
+            />
+          ) : null}
           {state.bottomTab === "problems" ? (
-            <Problems
+            <QueryProblemsPanel
               local={localProblems}
               remote={
                 state.validation ? [...state.validation.errors, ...state.validation.warnings] : []
               }
+              onFilterIssue={onFilterIssue}
             />
           ) : null}
           {state.bottomTab === "parameters" ? (
             <ParameterSummary document={state.workingQuery} />
           ) : null}
-          {state.bottomTab === "sql" ? <Sql state={state} /> : null}
+          {state.bottomTab === "sql" ? <QuerySqlPanel state={state} /> : null}
           {state.bottomTab === "complexity" ? <Complexity state={state} /> : null}
           {state.bottomTab === "json" ? (
             <pre className="text-xs">{JSON.stringify(state.workingQuery, null, 2)}</pre>
@@ -91,13 +125,22 @@ export function QueryBottomPanel({
 }
 const names: Record<BottomTab, string> = {
   results: "Resultados",
+  filters: "Filtros",
   problems: "Problemas",
   parameters: "Parámetros",
   sql: "SQL",
   complexity: "Complejidad",
   json: "JSON técnico",
 };
-function Problems({ local, remote }: { local: QueryIssue[]; remote: QueryIssue[] }) {
+export function QueryProblemsPanel({
+  local,
+  remote,
+  onFilterIssue,
+}: {
+  local: QueryIssue[];
+  remote: QueryIssue[];
+  onFilterIssue: (issue: QueryIssue) => void;
+}) {
   const items = remote.length ? remote : local;
   if (!items.length)
     return (
@@ -112,6 +155,10 @@ function Problems({ local, remote }: { local: QueryIssue[]; remote: QueryIssue[]
         <button
           className="flex w-full items-start gap-2 rounded-lg border p-2 text-left text-sm"
           key={`${issue.code}-${String(index)}`}
+          onClick={() => {
+            if (issue.path.startsWith("query.where") || issue.path.startsWith("query.having"))
+              onFilterIssue(issue);
+          }}
         >
           <span>
             {issue.severity === "error" ? (
@@ -146,7 +193,7 @@ function ParameterSummary({ document }: { document: QueryDocument }) {
     <p className="text-sm text-slate-500">No hay parámetros definidos.</p>
   );
 }
-function Sql({ state }: { state: BuilderState }) {
+export function QuerySqlPanel({ state }: { state: BuilderState }) {
   if (!state.compilation)
     return (
       <p className="flex gap-2 text-sm text-slate-500">

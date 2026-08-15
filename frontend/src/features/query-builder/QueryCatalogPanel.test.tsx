@@ -195,6 +195,37 @@ beforeEach(() => {
 });
 
 describe("QueryCatalogPanel", () => {
+  it("separates tables and views into collapsible catalog sections", async () => {
+    listEntities.mockResolvedValue({
+      items: [
+        entitySummary,
+        {
+          ...entitySummary,
+          id: "active_students",
+          physical_name: "active_students",
+          display_name: "Estudiantes activos",
+          entity_type: "view",
+        },
+      ],
+      total: 2,
+      page: 1,
+      page_size: 100,
+    });
+    renderCatalog();
+    expect(await screen.findByRole("button", { name: /Tablas.*1/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    const views = screen.getByRole("button", { name: /Vistas.*1/ });
+    expect(views).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(views);
+    expect(
+      screen
+        .getAllByRole("button", { name: /Estudiantes activos/ })
+        .find((button) => button.hasAttribute("aria-expanded")),
+    ).toBeVisible();
+  });
+
   it("expands inline, renders metadata and selects fields without external scrolling", async () => {
     const { props } = renderCatalog();
     fireEvent.click(await screen.findByRole("button", { name: /Estudiantes/ }));
