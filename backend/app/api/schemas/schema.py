@@ -48,6 +48,7 @@ class SchemaSummaryResponse(BaseModel):
 
 class EntitySummaryResponse(BaseModel):
     id: uuid.UUID
+    schema_name: str
     physical_name: str
     display_name: str
     entity_type: str

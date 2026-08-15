@@ -1,169 +1,167 @@
 import { useQuery } from "@tanstack/react-query";
-import { Eye, Plus, Search, ShieldAlert } from "lucide-react";
-import { useDeferredValue, useState } from "react";
+import { ChevronsUp, Database } from "lucide-react";
+import { useMemo, useState } from "react";
 
-import { getSchemaEntity, listSchemaEntities } from "../schema/api/schemaApi";
+import { EmptyStateBase, Skeleton } from "../../components/ui/FeedbackStates";
+import { IconButton } from "../../components/ui/IconButton";
+import { SearchInput } from "../../components/ui/SearchInput";
 import { listSemanticEntities } from "../relationships/api/relationshipsApi";
 import type { QueryDocument } from "../queries/types";
+import { EntityCatalogItem } from "./catalog/EntityCatalogItem";
+import { useQueryCatalog } from "./catalog/useQueryCatalog";
 
 export function QueryCatalogPanel({
-  document,
-  selectedSourceId,
   canUseSensitive,
+  document,
+  onAddRelationship,
   onEntity,
-  onField,
-  onInspect,
+  onFields,
+  readOnly,
 }: {
-  document: QueryDocument;
-  selectedSourceId: string;
   canUseSensitive: boolean;
-  onEntity: (id: string) => void;
-  onField: (fieldId: string, label: string) => void;
-  onInspect: (entityId: string) => void;
+  document: QueryDocument;
+  onAddRelationship: () => void;
+  onEntity: (sourceId: string) => void;
+  onFields: (
+    sourceId: string,
+    fields: Array<{ id: string; label: string }>,
+    selected: boolean,
+  ) => void;
+  readOnly: boolean;
 }) {
-  const [search, setSearch] = useState("");
-  const deferred = useDeferredValue(search);
-  const entities = useQuery({
-    queryKey: ["builder-entities", document.connection_id, deferred],
-    queryFn: () => listSchemaEntities(document.connection_id, { search: deferred, isActive: true }),
-  });
+  const catalog = useQueryCatalog(document.connection_id);
+  const [inspectedFieldId, setInspectedFieldId] = useState<string | null>(null);
   const semantics = useQuery({
     queryKey: ["builder-semantics", document.connection_id],
     queryFn: () => listSemanticEntities(document.connection_id),
+    staleTime: 5 * 60 * 1000,
   });
-  const semanticFields = new Map(
-    semantics.data?.items.flatMap((entity) =>
-      entity.fields.map((field) => [field.id, field] as const),
-    ) ?? [],
+  const semanticEntities = useMemo(
+    () => new Map(semantics.data?.items.map((entity) => [entity.id, entity]) ?? []),
+    [semantics.data],
   );
-  const source =
-    [document.query.source, ...document.query.joins.map((join) => join.source)].find(
-      (item) => item.source_id === selectedSourceId,
-    ) ?? document.query.source;
-  const detail = useQuery({
-    queryKey: ["builder-entity", document.connection_id, source.entity_id],
-    queryFn: () => getSchemaEntity(document.connection_id, source.entity_id),
-  });
+  const sources = useMemo(
+    () => [document.query.source, ...document.query.joins.map((join) => join.source)],
+    [document.query.joins, document.query.source],
+  );
+  const selectedBySource = useMemo(() => {
+    const result = new Map<string, Set<string>>();
+    for (const source of sources) result.set(source.source_id, new Set());
+    for (const item of document.query.select) {
+      if (item.expression.node_type !== "field") continue;
+      const sourceId =
+        typeof item.expression.source_id === "string" ? item.expression.source_id : "";
+      const fieldId = typeof item.expression.field_id === "string" ? item.expression.field_id : "";
+      result.get(sourceId)?.add(fieldId);
+    }
+    return result;
+  }, [document.query.select, sources]);
+
   return (
     <aside
       className="flex h-full min-h-0 flex-col border-r bg-white"
       aria-label="Catálogo de consulta"
     >
-      <div className="border-b p-4">
-        <h2 className="font-semibold">Catálogo</h2>
-        <label className="field-with-icon mt-3">
-          <Search className="size-4" />
-          <span className="sr-only">Buscar entidades</span>
-          <input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
+      <header className="sticky top-0 z-10 border-b bg-white px-3 pb-3 pt-2">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold">Entidades</h2>
+            <p className="text-[11px] text-slate-500">
+              {catalog.query.data?.pages[0]?.total ?? 0} disponibles
+            </p>
+          </div>
+          <IconButton
+            label="Colapsar todas las entidades"
+            onClick={() => {
+              catalog.collapseAll();
             }}
-            placeholder="Buscar entidades…"
+            size="sm"
+          >
+            <ChevronsUp className="size-4" />
+          </IconButton>
+        </div>
+        <SearchInput
+          aria-label="Buscar tablas o campos"
+          loading={catalog.searching}
+          onChange={(event) => {
+            catalog.setSearch(event.target.value);
+          }}
+          onClear={() => {
+            catalog.setSearch("");
+          }}
+          placeholder="Buscar tablas o campos…"
+          value={catalog.search}
+        />
+      </header>
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        data-testid="catalog-scroll"
+      >
+        {catalog.query.isPending ? (
+          <div className="space-y-2 p-3" role="status" aria-label="Cargando entidades">
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton className="h-10" key={index} />
+            ))}
+          </div>
+        ) : catalog.query.isError ? (
+          <div className="p-4 text-center text-sm text-red-600">
+            <p>No fue posible cargar el catálogo.</p>
+            <button
+              className="mt-2 font-semibold"
+              onClick={() => void catalog.query.refetch()}
+              type="button"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : catalog.entities.length === 0 ? (
+          <EmptyStateBase
+            description={
+              catalog.search
+                ? `No encontramos tablas o campos para “${catalog.search}”.`
+                : "No se encontraron entidades disponibles."
+            }
+            icon={Database}
+            title={catalog.search ? "Sin coincidencias" : "Catálogo vacío"}
           />
-        </label>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Entidades</h3>
-        {entities.isPending ? (
-          <p className="p-3 text-sm text-slate-500">Cargando…</p>
         ) : (
-          entities.data?.items.map((entity) => {
-            const used = [
-              document.query.source,
-              ...document.query.joins.map((join) => join.source),
-            ].some((item) => item.entity_id === entity.id);
-            return (
-              <div
-                className={`mb-2 rounded-lg border p-3 ${used ? "border-blue-200 bg-blue-50" : "border-slate-200"}`}
-                key={entity.id}
-              >
-                <button
-                  className="w-full text-left"
-                  onClick={() => {
-                    if (used) {
-                      const found = [
-                        document.query.source,
-                        ...document.query.joins.map((join) => join.source),
-                      ].find((item) => item.entity_id === entity.id);
-                      if (found) onEntity(found.source_id);
-                    } else onInspect(entity.id);
+          <ul aria-label="Entidades disponibles">
+            {catalog.entities.map((entity) => {
+              const source = sources.find((item) => item.entity_id === entity.id);
+              return (
+                <EntityCatalogItem
+                  canUseSensitive={canUseSensitive}
+                  connectionId={document.connection_id}
+                  entity={entity}
+                  expanded={catalog.isExpanded(entity.id)}
+                  inspectedFieldId={inspectedFieldId}
+                  key={entity.id}
+                  onAddRelationship={onAddRelationship}
+                  onInspectEntity={() => {
+                    if (source) onEntity(source.source_id);
                   }}
-                >
-                  <strong className="block text-sm">{entity.display_name}</strong>
-                  <span className="text-xs text-slate-500">
-                    {entity.physical_name} · {entity.entity_type} · {entity.fields_count} campos
-                  </span>
-                </button>
-                <div className="mt-2 flex gap-2">
-                  <button
-                    className="text-xs font-semibold text-blue-700"
-                    onClick={() => {
-                      onInspect(entity.id);
-                    }}
-                  >
-                    <Eye className="mr-1 inline size-3" />
-                    Detalle
-                  </button>
-                  {used ? (
-                    <span className="text-xs font-semibold text-emerald-700">En uso</span>
-                  ) : null}
-                </div>
-              </div>
-            );
-          })
-        )}
-        <h3 className="mb-2 mt-5 text-xs font-bold uppercase tracking-wide text-slate-400">
-          Campos de {detail.data?.display_name ?? "la entidad"}
-        </h3>
-        {detail.data?.fields
-          .filter((field) => field.is_active)
-          .map((field) => {
-            const semantic = semanticFields.get(field.id);
-            const sensitive = semantic?.is_sensitive ?? false;
-            const visible = semantic?.is_visible ?? true;
-            const selected = document.query.select.some(
-              (item) =>
-                item.expression.field_id === field.id &&
-                item.expression.source_id === source.source_id,
-            );
-            return (
-              <div
-                className="flex items-center justify-between gap-2 border-b border-slate-100 py-2"
-                key={field.id}
-              >
-                <div className="min-w-0">
-                  <span className="block truncate text-sm font-medium">
-                    {semantic?.display_name ?? field.display_name}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {field.native_data_type}
-                    {field.is_primary_key ? " · PK" : ""}
-                    {sensitive ? " · Sensible" : ""}
-                    {!visible ? " · Oculto" : ""}
-                  </span>
-                </div>
-                <button
-                  className="icon-button"
-                  disabled={selected || !visible || (sensitive && !canUseSensitive)}
-                  title={
-                    selected
-                      ? "Ya seleccionado"
-                      : !visible
-                        ? "Campo oculto"
-                        : sensitive && !canUseSensitive
-                          ? "Requiere permiso para campos sensibles"
-                          : "Añadir campo"
+                  onInspectField={(fieldId) => {
+                    setInspectedFieldId(fieldId);
+                    if (source) onEntity(source.source_id);
+                  }}
+                  onToggle={() => {
+                    catalog.toggle(entity.id);
+                  }}
+                  onToggleFields={(fields, selected) => {
+                    if (source) onFields(source.source_id, fields, selected);
+                  }}
+                  readOnly={readOnly}
+                  search={catalog.search}
+                  selectedFieldIds={
+                    source ? (selectedBySource.get(source.source_id) ?? new Set()) : new Set()
                   }
-                  onClick={() => {
-                    onField(field.id, semantic?.display_name ?? field.display_name);
-                  }}
-                >
-                  {sensitive ? <ShieldAlert className="size-4" /> : <Plus className="size-4" />}
-                </button>
-              </div>
-            );
-          })}
+                  semantic={semanticEntities.get(entity.id)}
+                  source={source}
+                />
+              );
+            })}
+          </ul>
+        )}
       </div>
     </aside>
   );

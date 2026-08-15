@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 15 de agosto de 2026. Las Fases 0–19 están completadas; la última
-entrega corresponde a la **Fase 19**, rediseño estructural del constructor
-visual como workspace profesional.
+Actualizado: 15 de agosto de 2026. Las Fases 0–20 están completadas; la última
+entrega corresponde a la **Fase 20**, catálogo expandible y selección avanzada
+de campos dentro del workspace del constructor.
 
 ## 1. Objetivo general
 
@@ -824,3 +824,34 @@ Estado: **completada el 15 de agosto de 2026**.
 - Documentación completa: `docs/QUERY_BUILDER_UI.md`.
 - Límites: no se adelantaron el árbol/campos de Fase 20, filtros de Fase 21,
   relaciones de Fase 22, campos avanzados de Fase 23 ni resultados de Fase 25.
+
+## 21. Fase 20 — catálogo de entidades y selección avanzada de campos
+
+Estado: **completada el 15 de agosto de 2026**.
+
+- El catálogo izquierdo reemplaza la sección distante de columnas por entidades
+  expandibles con campos inline, contador seleccionado/total y scroll propio.
+- `SearchInput` busca de forma parcial y case-insensitive por schema, nombre
+  físico/visible de entidad y nombre físico/visible de campo. El botón de limpiar
+  permanece disponible incluso durante la carga.
+- La consulta de metadata reutiliza `/schema/entities`, ahora con matching de
+  campos y `schema_name`; consume páginas de 100 y carga cada detalle únicamente
+  al expandir, con caché TanStack Query de cinco minutos.
+- PK, FK con destino, sensible, oculto, nullable y tipo se presentan mediante
+  indicadores y tooltips compactos. Campos restringidos nunca son seleccionables.
+- Los checkboxes derivan directamente del AST. Selección individual y masiva
+  usan una única acción inmutable, respetan campos restringidos y participan en
+  dirty, fingerprint y undo/redo; búsqueda, expansión e inspección no lo hacen.
+- Una entidad no usada no se autoañade ni crea joins ambiguos. `En uso` identifica
+  sources existentes y la acción de añadir abre el flujo seguro de relaciones
+  confirmadas ya existente.
+- Read-only permite buscar, expandir e inspeccionar, pero bloquea checkbox,
+  selección masiva y adición de relaciones.
+- La expansión se conserva durante la sesión del componente, pero no en
+  localStorage. Al buscar se expanden resultados temporalmente y al limpiar se
+  recupera el estado previo.
+- Vitest cubre búsqueda, limpiar, expansión, metadata, permisos, read-only,
+  selección e indeterminate; reducer cubre batch y undo. Playwright cubre
+  búsqueda, selección, guardado, recarga y scroll interno.
+- No se adelantaron filtros de Fase 21, edición de joins de Fase 22 ni alias,
+  agregaciones o expresiones avanzadas de Fase 23.
