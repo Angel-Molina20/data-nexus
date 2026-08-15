@@ -14,20 +14,31 @@ class AliasRegistry:
     def __init__(self, dialect: MySQLDialect) -> None:
         self.dialect = dialect
         self._scopes: dict[str, dict[str, str]] = {}
+        self._logical_aliases: dict[str, set[str]] = {}
+        self._physical_aliases: set[str] = set()
 
     def register(self, scope_id: str, source_id: str, alias: str) -> str:
         scope = self._scopes.setdefault(scope_id, {})
+        logical_scope = self._logical_aliases.setdefault(scope_id, set())
         folded = alias.casefold()
         if (
             not ALIAS_PATTERN.fullmatch(alias)
             or folded in MYSQL_RESERVED
-            or any(value.casefold() == folded for value in scope.values())
+            or folded in logical_scope
         ):
             raise PublicError(
                 "QUERY_ALIAS_COLLISION", "El alias no es válido o está repetido.", 422
             )
-        scope[source_id] = alias
-        return self.dialect.quote_identifier(alias)
+        logical_scope.add(folded)
+        physical_alias = alias
+        suffix = 2
+        while physical_alias.casefold() in self._physical_aliases:
+            suffix_text = f"_{suffix}"
+            physical_alias = f"{alias[: 64 - len(suffix_text)]}{suffix_text}"
+            suffix += 1
+        self._physical_aliases.add(physical_alias.casefold())
+        scope[source_id] = physical_alias
+        return self.dialect.quote_identifier(physical_alias)
 
     def resolve(self, scope_id: str, source_id: str) -> str:
         try:

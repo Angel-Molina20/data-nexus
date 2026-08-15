@@ -303,6 +303,7 @@ class MySQLQueryCompiler(QueryCompiler):
             "average": "AVG",
             "minimum": "MIN",
             "maximum": "MAX",
+            "group_concat": "GROUP_CONCAT",
         }
         argument = (
             "*"

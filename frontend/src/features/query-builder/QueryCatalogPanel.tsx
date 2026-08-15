@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronsUp, Database } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsUp, Database } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { EmptyStateBase, Skeleton } from "../../components/ui/FeedbackStates";
@@ -31,6 +31,7 @@ export function QueryCatalogPanel({
 }) {
   const catalog = useQueryCatalog(document.connection_id);
   const [inspectedFieldId, setInspectedFieldId] = useState<string | null>(null);
+  const [openKinds, setOpenKinds] = useState<Set<string>>(new Set(["table"]));
   const semantics = useQuery({
     queryKey: ["builder-semantics", document.connection_id],
     queryFn: () => listSemanticEntities(document.connection_id),
@@ -125,42 +126,90 @@ export function QueryCatalogPanel({
             title={catalog.search ? "Sin coincidencias" : "Catálogo vacío"}
           />
         ) : (
-          <ul aria-label="Entidades disponibles">
-            {catalog.entities.map((entity) => {
-              const source = sources.find((item) => item.entity_id === entity.id);
+          <div aria-label="Entidades disponibles">
+            {(
+              [
+                ["table", "Tablas"],
+                ["view", "Vistas"],
+              ] as const
+            ).map(([kind, label]) => {
+              const entities = catalog.entities.filter((entity) => entity.entity_type === kind);
+              const open = Boolean(catalog.search) || openKinds.has(kind);
               return (
-                <EntityCatalogItem
-                  canUseSensitive={canUseSensitive}
-                  connectionId={document.connection_id}
-                  entity={entity}
-                  expanded={catalog.isExpanded(entity.id)}
-                  inspectedFieldId={inspectedFieldId}
-                  key={entity.id}
-                  onAddRelationship={onAddRelationship}
-                  onInspectEntity={() => {
-                    if (source) onEntity(source.source_id);
-                  }}
-                  onInspectField={(fieldId) => {
-                    setInspectedFieldId(fieldId);
-                    if (source) onEntity(source.source_id);
-                  }}
-                  onToggle={() => {
-                    catalog.toggle(entity.id);
-                  }}
-                  onToggleFields={(fields, selected) => {
-                    if (source) onFields(source.source_id, fields, selected);
-                  }}
-                  readOnly={readOnly}
-                  search={catalog.search}
-                  selectedFieldIds={
-                    source ? (selectedBySource.get(source.source_id) ?? new Set()) : new Set()
-                  }
-                  semantic={semanticEntities.get(entity.id)}
-                  source={source}
-                />
+                <section className="border-b border-slate-200" key={kind}>
+                  <button
+                    aria-expanded={open}
+                    className="sticky top-0 z-[1] flex min-h-10 w-full items-center gap-2 bg-slate-50 px-3 text-left hover:bg-slate-100"
+                    onClick={() => {
+                      const next = new Set(openKinds);
+                      if (next.has(kind)) next.delete(kind);
+                      else next.add(kind);
+                      setOpenKinds(next);
+                    }}
+                    type="button"
+                  >
+                    {open ? (
+                      <ChevronDown className="size-4 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-4 shrink-0" />
+                    )}
+                    <strong className="flex-1 text-xs uppercase tracking-wide text-slate-600">
+                      {label}
+                    </strong>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                      {entities.length}
+                    </span>
+                  </button>
+                  {open ? (
+                    entities.length ? (
+                      <ul aria-label={label}>
+                        {entities.map((entity) => {
+                          const source = sources.find((item) => item.entity_id === entity.id);
+                          return (
+                            <EntityCatalogItem
+                              canUseSensitive={canUseSensitive}
+                              connectionId={document.connection_id}
+                              entity={entity}
+                              expanded={catalog.isExpanded(entity.id)}
+                              inspectedFieldId={inspectedFieldId}
+                              key={entity.id}
+                              onAddRelationship={onAddRelationship}
+                              onInspectEntity={() => {
+                                if (source) onEntity(source.source_id);
+                              }}
+                              onInspectField={(fieldId) => {
+                                setInspectedFieldId(fieldId);
+                                if (source) onEntity(source.source_id);
+                              }}
+                              onToggle={() => {
+                                catalog.toggle(entity.id);
+                              }}
+                              onToggleFields={(fields, selected) => {
+                                if (source) onFields(source.source_id, fields, selected);
+                              }}
+                              readOnly={readOnly}
+                              search={catalog.search}
+                              selectedFieldIds={
+                                source
+                                  ? (selectedBySource.get(source.source_id) ?? new Set())
+                                  : new Set()
+                              }
+                              semantic={semanticEntities.get(entity.id)}
+                              source={source}
+                            />
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="px-4 py-3 text-xs text-slate-400">
+                        No hay {label.toLowerCase()}.
+                      </p>
+                    )
+                  ) : null}
+                </section>
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
     </aside>

@@ -8,12 +8,14 @@ import { Modal } from "../../components/ui/Modal";
 import type { QueryExecutionState } from "../query-execution/QueryExecutionPanel";
 import { QueryExecutionPanel } from "../query-execution/QueryExecutionPanel";
 import type { SavedQuery } from "../queries/types";
+import type { QueryIssue } from "../queries/types";
 import { AddRelationshipDialog } from "./AddRelationshipDialog";
-import { QueryBottomPanel } from "./QueryBottomPanel";
+import { QueryProblemsPanel } from "./QueryBottomPanel";
 import { QueryBuilderHeader } from "./QueryBuilderHeader";
 import { QueryCanvas } from "./QueryCanvas";
 import { QueryCatalogPanel } from "./QueryCatalogPanel";
 import { QueryInspectorPanel } from "./QueryInspectorPanel";
+import { QueryFilterEditor } from "./filters/components/QueryFilterEditor";
 import { useQueryBuilderController } from "./hooks/useQueryBuilderController";
 import { queryActions } from "./state";
 import { QueryBuilderResizeHandle } from "./workspace/QueryBuilderResizeHandle";
@@ -22,6 +24,10 @@ import {
   queryBuilderLayoutLimits,
 } from "./workspace/queryBuilderLayoutPreferences";
 import { useQueryBuilderLayout } from "./workspace/useQueryBuilderLayout";
+import {
+  QueryWorkspaceNavigation,
+  type QueryWorkspaceView,
+} from "./workspace/QueryWorkspaceNavigation";
 
 const idleExecution: QueryExecutionState = { canRun: false, hasResult: false, status: "idle" };
 
@@ -35,10 +41,11 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
   const [execution, setExecution] = useState(idleExecution);
   const [executeRequest, setExecuteRequest] = useState(0);
   const [cancelRequest, setCancelRequest] = useState(0);
+  const [filterFocus, setFilterFocus] = useState<string | null>(null);
+  const [workspaceView, setWorkspaceView] = useState<QueryWorkspaceView>("visual");
 
   const leftVisible = !layout.focusMode && !layout.preferences.leftCollapsed;
   const rightVisible = !layout.focusMode && !layout.preferences.rightCollapsed;
-  const bottomCollapsed = layout.focusMode || layout.preferences.bottomCollapsed;
   const gridStyle = {
     "--builder-left-width": `${String(layout.preferences.leftWidth)}px`,
     "--builder-right-width": `${String(layout.preferences.rightWidth)}px`,
@@ -46,10 +53,9 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
   const resizeKey = [
     leftVisible,
     rightVisible,
-    bottomCollapsed,
+    workspaceView,
     layout.preferences.leftWidth,
     layout.preferences.rightWidth,
-    layout.preferences.bottomHeight,
   ].join(":");
 
   const catalog = (
@@ -88,7 +94,6 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100">
       <QueryBuilderHeader
-        bottomCollapsed={bottomCollapsed}
         busy={builder.busyAction}
         canCompile={builder.auth.hasPermission("queries.compile")}
         canExecute={builder.auth.hasPermission("queries.execute")}
@@ -98,6 +103,9 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
         focusMode={layout.focusMode}
         leftCollapsed={!leftVisible}
         name={savedQuery.name}
+        primaryAction={
+          workspaceView === "sql" || workspaceView === "results" ? "execute" : "compile"
+        }
         onAddRelationship={() => {
           builder.setRelationshipDialogOpen(true);
         }}
@@ -105,12 +113,14 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
           setCancelRequest((value) => value + 1);
         }}
         onCompile={() => {
-          layout.update({ bottomCollapsed: false });
+          if (builder.problems.length) {
+            setWorkspaceView("problems");
+            return;
+          }
+          setWorkspaceView("sql");
           void builder.compile();
         }}
         onExecute={() => {
-          dispatch({ type: "bottom_tab", tab: "results" });
-          layout.update({ bottomCollapsed: false });
           setExecuteRequest((value) => value + 1);
         }}
         onRedo={() => {
@@ -121,10 +131,6 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
         }}
         onResetLayout={layout.reset}
         onSave={builder.saveDocument}
-        onToggleBottom={() => {
-          if (layout.focusMode) layout.setFocusMode(false);
-          else layout.update({ bottomCollapsed: !layout.preferences.bottomCollapsed });
-        }}
         onToggleFocus={() => {
           layout.setFocusMode(!layout.focusMode);
         }}
@@ -140,7 +146,7 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
           dispatch({ type: "undo" });
         }}
         onValidate={() => {
-          layout.update({ bottomCollapsed: false });
+          setWorkspaceView("problems");
           void builder.validate();
         }}
         rightCollapsed={!rightVisible}
@@ -148,8 +154,17 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
         state={state}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="relative min-h-0 flex-1">
+      <QueryWorkspaceNavigation
+        active={workspaceView}
+        onChange={setWorkspaceView}
+        problems={builder.problems}
+      />
+
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div
+          className={`absolute inset-0 min-h-0 ${workspaceView === "visual" ? "" : "invisible pointer-events-none"}`}
+          aria-hidden={workspaceView !== "visual"}
+        >
           <div className="absolute left-2 top-2 z-10 flex gap-1 min-[1200px]:hidden">
             <Button
               onClick={() => {
@@ -233,54 +248,77 @@ export function QueryBuilderWorkspace({ savedQuery }: { savedQuery: SavedQuery }
           </div>
         </div>
 
-        {!bottomCollapsed ? (
-          <QueryBuilderResizeHandle
-            direction="horizontal"
-            label="Redimensionar panel inferior"
-            max={queryBuilderLayoutLimits.bottomHeight[1]}
-            min={queryBuilderLayoutLimits.bottomHeight[0]}
-            onChange={(bottomHeight) => {
-              layout.update({ bottomHeight });
-            }}
-            onReset={() => {
-              layout.update({ bottomHeight: DEFAULT_QUERY_BUILDER_LAYOUT.bottomHeight });
-            }}
-            reverse
-            value={layout.preferences.bottomHeight}
-          />
-        ) : null}
         <div
-          className="min-h-0 shrink-0 border-t border-border"
-          style={{ height: bottomCollapsed ? 41 : layout.preferences.bottomHeight }}
+          className={`absolute inset-0 overflow-auto bg-slate-50 p-4 ${workspaceView === "filters" ? "" : "hidden"}`}
         >
-          <QueryBottomPanel
-            collapsed={bottomCollapsed}
-            localProblems={builder.problems}
-            onCollapsedChange={(collapsed) => {
-              if (layout.focusMode && !collapsed) layout.setFocusMode(false);
-              layout.update({ bottomCollapsed: collapsed });
-            }}
-            onTab={(tab) => {
-              dispatch({ type: "bottom_tab", tab });
-            }}
-            results={
-              <QueryExecutionPanel
-                blocked={
-                  builder.problems.length > 0 ||
-                  Boolean(state.validation && !state.validation.valid)
-                }
-                canExecute={builder.auth.hasPermission("queries.execute")}
-                cancelRequest={cancelRequest}
-                compact
-                document={state.workingQuery}
-                executeRequest={executeRequest}
-                onStateChange={setExecution}
-                queryId={savedQuery.id}
-                revision={state.revision}
-              />
+          <div className="mx-auto max-w-6xl rounded-xl border border-border bg-white px-5 pb-5 shadow-sm">
+            <QueryFilterEditor
+              canUseSensitive={builder.auth.hasPermission("queries.use_sensitive_fields")}
+              document={state.workingQuery}
+              entities={builder.entities}
+              focusIssueId={filterFocus}
+              initialArea={filterFocus?.startsWith("having:") ? "having" : "where"}
+              onChange={builder.modify}
+              readOnly={builder.isReadOnly}
+            />
+          </div>
+        </div>
+
+        <div
+          className={`absolute inset-0 bg-slate-50 ${workspaceView === "sql" || workspaceView === "results" ? "" : "invisible pointer-events-none"}`}
+          aria-hidden={workspaceView !== "sql" && workspaceView !== "results"}
+        >
+          <QueryExecutionPanel
+            blocked={
+              builder.problems.length > 0 || Boolean(state.validation && !state.validation.valid)
             }
-            state={state}
+            canExecute={builder.auth.hasPermission("queries.execute")}
+            cancelRequest={cancelRequest}
+            compact
+            document={state.workingQuery}
+            executeRequest={executeRequest}
+            compilation={state.compilation}
+            mode={workspaceView === "sql" ? "sql" : "results"}
+            compiling={builder.busyAction === "compile"}
+            onCompile={() => {
+              if (builder.problems.length) {
+                setWorkspaceView("problems");
+                return;
+              }
+              void builder.compile();
+            }}
+            onExecuted={() => {
+              setWorkspaceView("results");
+            }}
+            onStateChange={setExecution}
+            queryId={savedQuery.id}
+            revision={state.revision}
           />
+        </div>
+
+        <div
+          className={`absolute inset-0 overflow-auto bg-slate-50 p-5 ${workspaceView === "problems" ? "" : "hidden"}`}
+        >
+          <div className="mx-auto max-w-5xl rounded-xl border border-border bg-white p-5 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold">Problemas de la consulta</h2>
+              <p className="text-sm text-muted">Validación local y definitiva del backend.</p>
+            </div>
+            <QueryProblemsPanel
+              local={builder.problems}
+              onFilterIssue={(issue: QueryIssue) => {
+                const area = issue.path.startsWith("query.having") ? "having" : "where";
+                const path = [...issue.path.matchAll(/conditions\[(\d+)\]/g)]
+                  .map((match) => match[1])
+                  .join(".");
+                setFilterFocus(`${area}:${path || issue.node_id || ""}`);
+                setWorkspaceView("filters");
+              }}
+              remote={
+                state.validation ? [...state.validation.errors, ...state.validation.warnings] : []
+              }
+            />
+          </div>
         </div>
       </div>
 

@@ -125,7 +125,7 @@ class FunctionExpression(QueryNode):
 
 class AggregateExpression(QueryNode):
     node_type: Literal["aggregate"] = "aggregate"
-    aggregate: Literal["count", "count_all", "sum", "average", "minimum", "maximum"]
+    aggregate: Literal["count", "count_all", "sum", "average", "minimum", "maximum", "group_concat"]
     argument: "Expression | None" = None
     distinct: bool = False
     filter: "Predicate | None" = None

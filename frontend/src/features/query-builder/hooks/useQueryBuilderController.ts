@@ -19,6 +19,9 @@ import { useBuilderKeyboardShortcuts } from "./useBuilderShortcuts";
 import { useUnsavedChangesGuard } from "../../../shared/hooks/useUnsavedChangesGuard";
 import { useReturnNavigation } from "../../../shared/hooks/useReturnNavigation";
 import { routes } from "../../../app/router/routes";
+import { filterIssues } from "../filters/model/validation";
+import { normalizedFilterType } from "../filters/model/predicates";
+import type { FilterFieldOption } from "../filters/model/types";
 
 export function useQueryBuilderController(savedQuery: SavedQuery) {
   const navigate = useNavigate();
@@ -54,7 +57,40 @@ export function useQueryBuilderController(savedQuery: SavedQuery) {
       ),
     [entityQueries],
   );
-  const problems = useMemo(() => localIssues(state.workingQuery), [state.workingQuery]);
+  const filterFieldOptions = useMemo(() => {
+    const sources = [
+      state.workingQuery.query.source,
+      ...state.workingQuery.query.joins.map((join) => join.source),
+    ];
+    return sources.flatMap((source) =>
+      (entities[source.entity_id]?.fields ?? []).map(
+        (field) =>
+          ({
+            id: `field:${source.source_id}:${field.id}`,
+            sourceId: source.source_id,
+            fieldId: field.id,
+            label: `${source.alias}.${field.display_name}`,
+            searchText:
+              `${source.alias} ${field.display_name} ${field.physical_name}`.toLocaleLowerCase(),
+            dataType: normalizedFilterType(field.normalized_data_type),
+            expression: { node_type: "field", source_id: source.source_id, field_id: field.id },
+            aggregate: false,
+            available: field.is_active,
+          }) satisfies FilterFieldOption,
+      ),
+    );
+  }, [entities, state.workingQuery.query.joins, state.workingQuery.query.source]);
+  const problems = useMemo(
+    () => [
+      ...localIssues(state.workingQuery),
+      ...filterIssues(
+        state.workingQuery.query.where,
+        state.workingQuery.query.having,
+        filterFieldOptions,
+      ),
+    ],
+    [filterFieldOptions, state.workingQuery],
+  );
 
   const unsaved = useUnsavedChangesGuard(state.dirty);
   const { returnTo } = useReturnNavigation(routes.queries.list());

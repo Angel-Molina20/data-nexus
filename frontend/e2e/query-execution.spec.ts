@@ -1,27 +1,275 @@
 import { expect, test } from "@playwright/test";
 
-const query = { id: "query", name: "Estudiantes", description: null, connection_id: "connection", owner_user_id: "user", document: { schema_version: "1.0", connection_id: "connection", query: { scope_id: "root", query_type: "select", source: { source_id: "students", entity_id: "entity", alias: "students" }, joins: [], select: [{ select_id: "name", item_type: "field", expression: { node_type: "field", source_id: "students", field_id: "field" }, alias: "student_name" }], group_by: [], order_by: [], distinct: false, unions: [] }, parameters: [{ parameter_id: "search", name: "search", label: "Nombre", data_type: "string", required: true, nullable: false, validation: {}, sensitive: false, display_order: 0 }], metadata: {}, options: {} }, schema_version: "1.0", status: "draft", validation_status: "valid", validation_errors: [], validation_warnings: [], fingerprint: "fingerprint", complexity: null, revision: 3, last_validated_at: null, created_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-01T00:00:00Z" };
+const query = {
+  id: "query",
+  name: "Estudiantes",
+  description: null,
+  connection_id: "connection",
+  owner_user_id: "user",
+  document: {
+    schema_version: "1.0",
+    connection_id: "connection",
+    query: {
+      scope_id: "root",
+      query_type: "select",
+      source: { source_id: "students", entity_id: "entity", alias: "students" },
+      joins: [],
+      select: [
+        {
+          select_id: "name",
+          item_type: "field",
+          expression: { node_type: "field", source_id: "students", field_id: "field" },
+          alias: "student_name",
+        },
+      ],
+      group_by: [],
+      order_by: [],
+      distinct: false,
+      unions: [],
+    },
+    parameters: [
+      {
+        parameter_id: "search",
+        name: "search",
+        label: "Nombre",
+        data_type: "string",
+        required: true,
+        nullable: false,
+        validation: {},
+        sensitive: false,
+        display_order: 0,
+      },
+    ],
+    metadata: {},
+    options: {},
+  },
+  schema_version: "1.0",
+  status: "draft",
+  validation_status: "valid",
+  validation_errors: [],
+  validation_warnings: [],
+  fingerprint: "fingerprint",
+  complexity: null,
+  revision: 3,
+  last_validated_at: null,
+  created_at: "2026-08-01T00:00:00Z",
+  updated_at: "2026-08-01T00:00:00Z",
+};
+
+const savedSubquery = {
+  ...structuredClone(query),
+  id: "saved_query",
+  name: "Nombres permitidos",
+  document: {
+    ...structuredClone(query.document),
+    query: {
+      ...structuredClone(query.document.query),
+      scope_id: "saved_scope",
+      source: { source_id: "saved_students", entity_id: "entity", alias: "students" },
+      select: [
+        {
+          select_id: "saved_name",
+          item_type: "field",
+          expression: { node_type: "field", source_id: "saved_students", field_id: "field" },
+          label: "Nombre",
+        },
+      ],
+    },
+  },
+};
 
 test.beforeEach(async ({ page }) => {
   let execution = 0;
   let currentQuery = structuredClone(query);
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url()); const path = url.pathname; const json = (body: unknown) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-    if (path.endsWith("/auth/me")) return json({ id: "user", email: "analyst@example.test", full_name: "Analista", status: "active", roles: ["analyst"], permissions: ["queries.read", "queries.update", "queries.validate", "queries.compile", "queries.execute"], must_change_password: false });
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    const json = (body: unknown) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    if (path.endsWith("/auth/me"))
+      return json({
+        id: "user",
+        email: "analyst@example.test",
+        full_name: "Analista",
+        status: "active",
+        roles: ["analyst"],
+        permissions: [
+          "queries.read",
+          "queries.update",
+          "queries.validate",
+          "queries.compile",
+          "queries.execute",
+        ],
+        must_change_password: false,
+      });
     if (path.endsWith("/auth/csrf")) return json({ csrf_token: "csrf" });
+    if (path.endsWith("/queries") && route.request().method() === "GET")
+      return json({ items: [savedSubquery], total: 1, page: 1, page_size: 100 });
+    if (path.endsWith("/queries/saved_query")) return json(savedSubquery);
     if (path.endsWith("/queries/query") && route.request().method() === "PATCH") {
       const payload = route.request().postDataJSON() as { document: typeof query.document };
       currentQuery = { ...currentQuery, document: payload.document, revision: 4 };
       return json(currentQuery);
     }
     if (path.endsWith("/queries/query")) return json(currentQuery);
-    if (path.endsWith("/connections/connection")) return json({ id: "connection", name: "Academic", engine: "mysql", raw_version: "8.0.42" });
-    if (path.endsWith("/schema/entities")) return json({ items: [{ id: "entity", schema_name: "academic", physical_name: "students", display_name: "Estudiantes", entity_type: "table", is_active: true, fields_count: 2, has_primary_key: true, indexes_count: 0, relationships_count: 0 }], total: 1, page: 1, page_size: 100 });
+    if (path.endsWith("/connections/connection"))
+      return json({ id: "connection", name: "Academic", engine: "mysql", raw_version: "8.0.42" });
+    if (path.endsWith("/schema/entities"))
+      return json({
+        items: [
+          {
+            id: "entity",
+            schema_name: "academic",
+            physical_name: "students",
+            display_name: "Estudiantes",
+            entity_type: "table",
+            is_active: true,
+            fields_count: 2,
+            has_primary_key: true,
+            indexes_count: 0,
+            relationships_count: 0,
+          },
+        ],
+        total: 1,
+        page: 1,
+        page_size: 100,
+      });
     if (path.endsWith("/semantic/entities")) return json({ items: [], total: 0 });
-    if (path.includes("/schema/entities/entity")) return json({ id: "entity", connection_id: "connection", physical_name: "students", display_name: "Estudiantes", entity_type: "table", engine: "mysql", schema_name: "academic", comment: null, estimated_rows: 3, storage_engine: "InnoDB", collation: null, is_active: true, first_seen_at: "2026-08-01", last_seen_at: "2026-08-01", fields: [{ id: "id", physical_name: "id", display_name: "ID", ordinal_position: 1, native_data_type: "bigint", normalized_data_type: "integer", column_type: "bigint unsigned", is_nullable: false, default_value: null, is_primary_key: true, is_unique: true, is_auto_increment: true, comment: null, is_active: true }, { id: "field", physical_name: "name", display_name: "Nombre", ordinal_position: 2, native_data_type: "varchar", normalized_data_type: "string", column_type: "varchar(255)", is_nullable: false, default_value: null, is_primary_key: false, is_unique: false, is_auto_increment: false, comment: null, is_active: true }], indexes: [], incoming_relationships: [], outgoing_relationships: [] });
-    if (path.endsWith("/query-model/validate")) return json({ valid: true, errors: [], warnings: [], normalized_query: query.document, fingerprint: "fingerprint", complexity: { level: "low", score: 1, metrics: {} } });
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    if (path.endsWith("/query-executions") && route.request().method() === "POST") { execution += 1; const payload = route.request().postDataJSON() as { parameters: { search: string }; pagination: { page: number; page_size: number } }; const pageNumber = payload.pagination.page; return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ execution: { id: `execution-${execution}`, connection_id: "connection", query_id: "query", query_revision: 3, status: "completed", started_at: "2026-08-01T00:00:00Z", finished_at: "2026-08-01T00:00:00Z", duration_ms: 15, row_count: 1, returned_row_count: 1, truncated: pageNumber === 1, page: pageNumber, page_size: payload.pagination.page_size, total_rows: null, total_pages: null, error_code: null, error_message: null }, columns: [{ key: "student_name", label: "Nombre", data_type: "string", nullable: false, source: null, format: null }], rows: [{ student_name: `${payload.parameters.search}-${String(pageNumber)}-${String(execution)}` }], warnings: [], metadata: { database_engine: "mysql", database_version: "8.0.42", compiled_sql: null } }) }); }
+    if (path.includes("/schema/entities/entity"))
+      return json({
+        id: "entity",
+        connection_id: "connection",
+        physical_name: "students",
+        display_name: "Estudiantes",
+        entity_type: "table",
+        engine: "mysql",
+        schema_name: "academic",
+        comment: null,
+        estimated_rows: 3,
+        storage_engine: "InnoDB",
+        collation: null,
+        is_active: true,
+        first_seen_at: "2026-08-01",
+        last_seen_at: "2026-08-01",
+        fields: [
+          {
+            id: "id",
+            physical_name: "id",
+            display_name: "ID",
+            ordinal_position: 1,
+            native_data_type: "bigint",
+            normalized_data_type: "integer",
+            column_type: "bigint unsigned",
+            is_nullable: false,
+            default_value: null,
+            is_primary_key: true,
+            is_unique: true,
+            is_auto_increment: true,
+            comment: null,
+            is_active: true,
+          },
+          {
+            id: "field",
+            physical_name: "name",
+            display_name: "Nombre",
+            ordinal_position: 2,
+            native_data_type: "varchar",
+            normalized_data_type: "string",
+            column_type: "varchar(255)",
+            is_nullable: false,
+            default_value: null,
+            is_primary_key: false,
+            is_unique: false,
+            is_auto_increment: false,
+            comment: null,
+            is_active: true,
+          },
+        ],
+        indexes: [],
+        incoming_relationships: [],
+        outgoing_relationships: [],
+      });
+    if (path.endsWith("/query-model/validate"))
+      return json({
+        valid: true,
+        errors: [],
+        warnings: [],
+        normalized_query: query.document,
+        fingerprint: "fingerprint",
+        complexity: { level: "low", score: 1, metrics: {} },
+      });
+    if (path.endsWith("/query-compiler/compile"))
+      return json({
+        id: "compilation",
+        success: true,
+        engine: "mysql",
+        provider: "mysql",
+        server_version: "8.0.42",
+        dialect: "mysql",
+        compiler_version: "1",
+        sql: "SELECT s.name FROM students AS s WHERE s.name = :search",
+        parameters: {},
+        warnings: [],
+        errors: [],
+        capabilities_used: [],
+        referenced_entities: ["students"],
+        referenced_fields: ["name"],
+        referenced_relationships: [],
+        query_fingerprint: "query-fingerprint",
+        compilation_fingerprint: "compilation-fingerprint",
+        complexity: { level: "low", score: 1, metrics: {} },
+        executed: false,
+      });
+    if (path.endsWith("/query-executions") && route.request().method() === "POST") {
+      execution += 1;
+      const payload = route.request().postDataJSON() as {
+        parameters: { search: string };
+        pagination: { page: number; page_size: number };
+      };
+      const pageNumber = payload.pagination.page;
+      return route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          execution: {
+            id: `execution-${String(execution)}`,
+            connection_id: "connection",
+            query_id: "query",
+            query_revision: 3,
+            status: "completed",
+            started_at: "2026-08-01T00:00:00Z",
+            finished_at: "2026-08-01T00:00:00Z",
+            duration_ms: 15,
+            row_count: 1,
+            returned_row_count: 1,
+            truncated: pageNumber === 1,
+            page: pageNumber,
+            page_size: payload.pagination.page_size,
+            total_rows: null,
+            total_pages: null,
+            error_code: null,
+            error_message: null,
+          },
+          columns: [
+            {
+              key: "student_name",
+              label: "Nombre",
+              data_type: "string",
+              nullable: false,
+              source: null,
+              format: null,
+            },
+          ],
+          rows: [
+            {
+              student_name: `${payload.parameters.search}-${String(pageNumber)}-${String(execution)}`,
+            },
+          ],
+          warnings: [],
+          metadata: { database_engine: "mysql", database_version: "8.0.42", compiled_sql: null },
+        }),
+      });
+    }
     return json({});
   });
 });
@@ -42,11 +290,46 @@ test("searches, expands and persists a field directly from the catalog", async (
   await expect(catalog).toHaveCSS("overflow-y", "auto");
 });
 
+test("builds, saves and reloads a basic WHERE filter visually", async ({ page }) => {
+  await page.goto("/queries/query/builder");
+  await page.getByRole("tab", { name: "Filtros" }).click();
+  await page.getByRole("button", { name: "Añadir condición" }).click();
+  await page.getByLabel("Campo", { exact: true }).selectOption("field:students:field");
+  await page.getByLabel("Valor 1").fill("Ada");
+  await page.getByRole("button", { name: "Aplicar condición" }).click();
+  await expect(page.getByText(/students.Nombre es igual a “Ada”/)).toBeVisible();
+  await expect(page.getByText("Cambios sin guardar")).toBeVisible();
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Guardado", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("tab", { name: "Filtros" }).click();
+  await expect(page.getByText(/students.Nombre es igual a “Ada”/)).toBeVisible();
+});
+
+test("builds, saves and reloads an IN subquery filter visually", async ({ page }) => {
+  await page.goto("/queries/query/builder");
+  await page.getByRole("tab", { name: "Filtros" }).click();
+  await page.getByRole("button", { name: "Añadir subconsulta" }).click();
+  await page.getByLabel("Campo comparado", { exact: true }).selectOption("field:students:field");
+  await page.getByLabel("Consulta guardada para filtro").selectOption("saved:saved_query");
+  await page.getByRole("button", { name: "Añadir condición interna" }).click();
+  await page.getByLabel("Campo", { exact: true }).selectOption("inner:saved_students:field");
+  await page.getByLabel("Valor 1").fill("Activo");
+  await page.getByRole("button", { name: "Aplicar condición" }).click();
+  await expect(page.getByText(/Condición interna 1/)).toBeVisible();
+  await page.getByRole("button", { name: "Aplicar subconsulta" }).click();
+  await expect(page.getByText("Condición con subconsulta")).toBeVisible();
+  await expect(page.getByText("IN (subconsulta)", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await page.reload();
+  await page.getByRole("tab", { name: "Filtros" }).click();
+  await expect(page.getByText("IN (subconsulta)", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Editar" })).toBeEnabled();
+});
+
 test("executes, paginates, changes a parameter and executes again", async ({ page }) => {
   await page.goto("/queries/query/builder");
-  await expect(
-    page.getByRole("heading", { name: "Estudiantes", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Estudiantes", exact: true })).toBeVisible();
   const node = page.locator(".react-flow__node").first();
   const box = await node.boundingBox();
   if (!box) throw new Error("Expected a visible React Flow node");
@@ -57,7 +340,8 @@ test("executes, paginates, changes a parameter and executes again", async ({ pag
   await expect(page.getByText("Cambios sin guardar")).toBeVisible();
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Guardado", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Resultados" }).click();
+  await page.getByRole("button", { name: "Compilar", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "SQL compilado" })).toBeVisible();
   await page.getByLabel("Nombre").fill("Ada");
   await page.getByRole("button", { name: "Ejecutar", exact: true }).click();
   await expect(page.getByRole("cell", { name: "Ada-1-1" })).toBeVisible();
@@ -69,9 +353,19 @@ test("executes, paginates, changes a parameter and executes again", async ({ pag
 });
 
 test("shows a controlled timeout and permits retry", async ({ page }) => {
-  await page.route("**/api/v1/query-executions", (route) => route.fulfill({ status: 504, contentType: "application/json", body: JSON.stringify({ code: "QUERY_EXECUTION_TIMEOUT", message: "La ejecución excedió el tiempo permitido." }) }));
+  await page.route("**/api/v1/query-executions", (route) =>
+    route.fulfill({
+      status: 504,
+      contentType: "application/json",
+      body: JSON.stringify({
+        code: "QUERY_EXECUTION_TIMEOUT",
+        message: "La ejecución excedió el tiempo permitido.",
+      }),
+    }),
+  );
   await page.goto("/queries/query/builder");
-  await page.getByRole("tab", { name: "Resultados" }).click();
+  await page.getByRole("button", { name: "Compilar", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "SQL compilado" })).toBeVisible();
   await page.getByLabel("Nombre").fill("slow");
   await page.getByRole("button", { name: "Ejecutar", exact: true }).click();
   await expect(page.getByText("La ejecución excedió el tiempo permitido.")).toBeVisible();

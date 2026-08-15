@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { executeQuery } from "./api/executionsApi";
-import type { QueryDocument } from "../queries/types";
+import type { CompilationResult, QueryDocument } from "../queries/types";
 import { QueryExecutionPanel } from "./QueryExecutionPanel";
 
 vi.mock("./api/executionsApi", () => ({ executeQuery: vi.fn(), cancelExecution: vi.fn() }));
@@ -92,6 +92,12 @@ const response = {
   metadata: { database_engine: "mysql", database_version: "8.0", compiled_sql: null },
 };
 
+const compilation = {
+  success: true,
+  sql: "SELECT source.name\nFROM students AS source\nWHERE source.active = :active",
+  executed: false,
+} as CompilationResult;
+
 describe("QueryExecutionPanel", () => {
   it("sends the AST and parameters and renders dynamic results", async () => {
     vi.mocked(executeQuery).mockResolvedValue(response);
@@ -119,7 +125,7 @@ describe("QueryExecutionPanel", () => {
     );
     expect(await screen.findByRole("columnheader", { name: /payload/i })).toBeInTheDocument();
     expect(screen.getByText("NULL")).toBeInTheDocument();
-    expect(screen.getByText("Resultado truncado")).toBeInTheDocument();
+    expect(screen.getByText("Truncado")).toBeInTheDocument();
     const inspector = screen.getAllByTitle("Inspeccionar valor")[0];
     if (!inspector) throw new Error("Expected a result cell inspector");
     await user.click(inspector);
@@ -153,5 +159,68 @@ describe("QueryExecutionPanel", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Ejecutar consulta" })).toBeDisabled();
+  });
+
+  it("uses a dedicated parameter sidebar and full-height result view in workspace mode", () => {
+    render(
+      <QueryExecutionPanel
+        blocked={false}
+        canExecute
+        compact
+        document={document}
+        queryId="query"
+        revision={2}
+      />,
+    );
+    expect(screen.getByRole("complementary", { name: "Parámetros de ejecución" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Resultados" })).toBeVisible();
+    expect(screen.getByText("Aún no hay resultados")).toBeVisible();
+  });
+
+  it("renders backend SQL with parameters and executes before navigating to results", async () => {
+    vi.mocked(executeQuery).mockResolvedValue(response);
+    const onExecuted = vi.fn();
+    const onCompile = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <QueryExecutionPanel
+        blocked={false}
+        canExecute
+        compilation={compilation}
+        document={document}
+        mode="sql"
+        onCompile={onCompile}
+        onExecuted={onExecuted}
+        queryId="query"
+        revision={2}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "SQL compilado" })).toBeVisible();
+    expect(screen.getByText("FROM students AS source")).toBeVisible();
+    expect(screen.getByRole("complementary", { name: "Configuración SQL" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Recompilar" }));
+    expect(onCompile).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole("checkbox", { name: /Activo/ }));
+    rerender(
+      <QueryExecutionPanel
+        blocked={false}
+        canExecute
+        compilation={compilation}
+        document={document}
+        executeRequest={1}
+        mode="sql"
+        onCompile={onCompile}
+        onExecuted={onExecuted}
+        queryId="query"
+        revision={2}
+      />,
+    );
+    await vi.waitFor(() => {
+      expect(executeQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ ast: document, parameters: { active: true } }),
+        expect.any(AbortSignal),
+      );
+      expect(onExecuted).toHaveBeenCalledOnce();
+    });
   });
 });

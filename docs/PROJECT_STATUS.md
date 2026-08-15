@@ -1,8 +1,8 @@
 # Estado del proyecto DataNexus
 
-Actualizado: 15 de agosto de 2026. Las Fases 0–20 están completadas; la última
-entrega corresponde a la **Fase 20**, catálogo expandible y selección avanzada
-de campos dentro del workspace del constructor.
+Actualizado: 15 de agosto de 2026. Las Fases 0–21 están completadas; la última
+entrega corresponde a la **Fase 21**, editor visual avanzado de filtros WHERE y
+HAVING dentro del workspace del constructor.
 
 ## 1. Objetivo general
 
@@ -855,3 +855,84 @@ Estado: **completada el 15 de agosto de 2026**.
   búsqueda, selección, guardado, recarga y scroll interno.
 - No se adelantaron filtros de Fase 21, edición de joins de Fase 22 ni alias,
   agregaciones o expresiones avanzadas de Fase 23.
+
+## 22. Fase 21 — editor visual avanzado de filtros WHERE y HAVING
+
+Estado: **completada el 15 de agosto de 2026**.
+
+- Navegación principal por subpantallas: Vista visual, Filtros, SQL, Resultados
+  y Problemas. React Flow y la ejecución permanecen montados al cambiar.
+- Filtros usa una subpantalla amplia con WHERE/HAVING separados y deja de
+  duplicarse en el inspector. El inspector usa un selector compacto sin scroll
+  horizontal para Campos, Agrupar, Orden, Parámetros y UNION.
+- Resultados usa parámetros laterales, métricas compactas, tabla de altura
+  disponible y paginación fija dentro de su superficie, sin cambiar ejecución.
+- Campos seleccionados se agrupan por entidad/alias en acordeones compactos con
+  contador. Cada fila expone alias y auxiliar solo al expandirse, reduciendo el
+  scroll sin alterar el orden global de SELECT.
+- El catálogo separa Tablas y Vistas en secciones plegables con contadores. El
+  inspector presenta la entidad base como fila y los joins en un único acordeón
+  Relaciones, reduciendo altura sin cambiar contratos.
+- El flujo del constructor separa compilación y ejecución: Vista visual compila
+  mediante backend y abre SQL; la subpantalla SQL presenta código numerado,
+  parámetros y opciones del AST, y solo desde SQL/Resultados se ejecuta antes de
+  navegar a la tabla de resultados.
+- `Compilar SQL` ya no se duplica en el menú de tres puntos; SQL ofrece
+  `Recompilar` contextual. Ordenamientos, contratos de parámetros y ramas UNION
+  tienen eliminación AST-first con dirty/undo y confirmación cuando corresponde.
+- GROUP BY detecta localmente cada SELECT no agregado faltante y lo muestra en
+  Problemas antes de compilar. Agrupar permite incorporar todos los campos y
+  expresiones seleccionados pendientes en una sola operación AST, sin duplicados y con un
+  único paso de undo.
+- La equivalencia de expresiones GROUP BY usa canonicalización estable y las
+  filas muestran labels de SELECT; se corrigieron falsos errores causados por
+  distinto orden de propiedades y la exposición de IDs internos en la UI.
+- GROUP BY identifica campos como `alias.campo`; Agrupar muestra las agregaciones
+  SELECT activas y permite eliminar COUNT desde el mismo contexto, retirando la
+  obligación de agrupar cuando ya no queda agregación ni GROUP BY explícito.
+- COUNT ya no elige implícitamente el primer SELECT: permite `COUNT(*)`, cualquier
+  campo activo del contexto, `COUNT(DISTINCT campo)` y subqueries ya presentes
+  como expresiones AST. La creación de nuevas subqueries espera el editor
+  reutilizable correspondiente.
+- El editor de expresiones ofrece `GROUP_CONCAT(campo)` como nodo aggregate de
+  resultado string, reconocido por GROUP BY/HAVING y compilado por backend para
+  MySQL 5.6+.
+- GROUP BY dispone de borrado masivo confirmado como una única operación
+  dirty/undo. Campos incorpora un editor AST-first para funciones SELECT,
+  argumentos de campo/literal/parámetro/subquery existente y CASE como IF
+  portable. Una consulta guardada de la misma conexión puede originar la primera
+  subquery SELECT sin SQL libre. Se añadió correlación asistida mediante
+  outer_field + WHERE interno y edición de expresiones preservando select_id.
+  Pendiente: edición recursiva del QueryBody anidado y CAST.
+- Selector buscable limitado a sources actuales y diferenciado por alias.
+  HAVING incorpora agregaciones existentes en SELECT; WHERE no las ofrece.
+- Catálogo centralizado de operadores por tipo para string, integer, decimal,
+  boolean, date/datetime/time, JSON, binary y unknown.
+- Literales tipados, parámetros compatibles y referencias a campos; IS NULL,
+  BETWEEN/NOT BETWEEN, IN/NOT IN y LIKE se traducen solo a AST 1.0.
+- Grupos AND/OR anidados, duplicación, eliminación confirmada de grupos y
+  reorder accesible mediante botones, sin dependencia drag-and-drop.
+- Las condiciones incompletas viven como drafts de UI y entran al AST mediante
+  un solo commit. Operaciones semánticas participan en dirty, fingerprint y
+  undo/redo; tabs, búsquedas y drafts no.
+- IN/NOT IN con subconsulta y EXISTS/NOT EXISTS se crean y editan visualmente
+  desde consultas guardadas de la misma conexión. IN exige una proyección
+  escalar; EXISTS acepta cualquier proyección. La correlación asistida agrega
+  `outer_field` al WHERE interno y el compilador evita shadowing entre alias de
+  scopes. Condiciones avanzadas restantes se conservan íntegras; el round-trip
+  no pierde información.
+- Las subconsultas admiten múltiples condiciones WHERE internas adicionales.
+  Tanto Filtros como el editor de expresiones SELECT reutilizan el mismo draft
+  tipado, usan metadata de sus entidades y combinan las condiciones con AND sin
+  reemplazar el WHERE guardado ni la correlación.
+- Validación local de campos fuera de contexto, grupos y listas vacías; el
+  backend sigue siendo definitivo. Problemas WHERE/HAVING navegan a Filtros.
+- Read-only y permisos bloquean mutaciones; los campos ocultos/sensibles siguen
+  la capa semántica. No hay SQL libre, interpolación ni consultas DISTINCT.
+- Vitest cubre operadores, fuentes, NULL, BETWEEN, IN, grupos, duplicación,
+  reorder, delete, round-trip legacy, drafts, read-only, dirty y undo/redo.
+  Playwright cubre crear, guardar y recargar un WHERE básico y un filtro IN con
+  subconsulta guardada.
+- Documentación: `docs/QUERY_BUILDER_UI.md`.
+- No se adelantaron relaciones de Fase 22, campos/expresiones de
+  Fase 23, depuración de Fase 24 ni resultados de Fase 25.

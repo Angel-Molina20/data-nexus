@@ -4,14 +4,18 @@ export function QueryParametersPanel({
   parameters,
   values,
   onChange,
+  compact = false,
 }: {
   parameters: QueryParameter[];
   values: Record<string, unknown>;
   onChange: (id: string, value: unknown) => void;
+  compact?: boolean;
 }) {
   if (!parameters.length) return null;
   return (
-    <fieldset className="grid gap-3 rounded-lg border bg-slate-50 p-3 md:grid-cols-2">
+    <fieldset
+      className={`grid gap-3 rounded-lg border bg-slate-50 p-3 ${compact ? "" : "md:grid-cols-2"}`}
+    >
       <legend className="px-1 text-sm font-bold">Parámetros</legend>
       {parameters.map((parameter) => (
         <label className="text-xs font-semibold text-slate-700" key={parameter.parameter_id}>

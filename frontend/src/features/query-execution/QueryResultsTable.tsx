@@ -1,13 +1,19 @@
 import type { ExecutionResult } from "./types";
 import { ResultCell } from "./ResultCell";
 
-export function QueryResultsTable({ result }: { result: ExecutionResult }) {
+export function QueryResultsTable({
+  result,
+  fill = false,
+}: {
+  result: ExecutionResult;
+  fill?: boolean;
+}) {
   if (!result.rows.length)
     return (
       <div className="p-8 text-center text-sm text-slate-500">La consulta no devolvió filas.</div>
     );
   return (
-    <div className="max-h-80 overflow-auto" tabIndex={0}>
+    <div className={fill ? "h-full overflow-auto" : "max-h-80 overflow-auto"} tabIndex={0}>
       <table className="w-full border-separate border-spacing-0 text-sm">
         <thead className="sticky top-0 z-10 bg-slate-100">
           <tr>
